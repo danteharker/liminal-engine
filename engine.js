@@ -26,12 +26,12 @@ const STAGES = [
 // The six tones a visitor can choose. Each carries a planet, its metal, and the colour the
 // room takes: `room` tints the wall, fog and air; `glow` is the halo behind the sphere.
 const TONES = [
-    { key: '396', hz: 396, planet: 'Saturn',  metal: 'Lead',        room: 0x2c3150, glow: 0x5d64a6 },
-    { key: '432', hz: 432, planet: 'Sol',     metal: 'Gold',        room: 0x4a3418, glow: 0xd9a34a },
-    { key: '528', hz: 528, planet: 'Venus',   metal: 'Copper',      room: 0x1c4a40, glow: 0x3fae8c },
-    { key: '639', hz: 639, planet: 'Jupiter', metal: 'Tin',         room: 0x1f3a6e, glow: 0x4f86e0 },
-    { key: '741', hz: 741, planet: 'Mercury', metal: 'Quicksilver', room: 0x2a4a54, glow: 0x7cc0cf },
-    { key: '852', hz: 852, planet: 'Luna',    metal: 'Silver',      room: 0x3a4150, glow: 0xb7c3d8 }
+    { key: '396', hz: 396, planet: 'Saturn',  metal: 'Lead',        room: 0x2c3150, glow: 0x5d64a6, feel: 'Heavy. Grounded. The weight of the day.' },
+    { key: '432', hz: 432, planet: 'Sol',     metal: 'Gold',        room: 0x4a3418, glow: 0xd9a34a, feel: 'Warm. Steady. Like sunlight on closed eyes.' },
+    { key: '528', hz: 528, planet: 'Venus',   metal: 'Copper',      room: 0x1c4a40, glow: 0x3fae8c, feel: 'Soft. Open. The colour of green water.' },
+    { key: '639', hz: 639, planet: 'Jupiter', metal: 'Tin',         room: 0x1f3a6e, glow: 0x4f86e0, feel: 'Wide. Clear. A big sky.' },
+    { key: '741', hz: 741, planet: 'Mercury', metal: 'Quicksilver', room: 0x2a4a54, glow: 0x7cc0cf, feel: 'Quick. Bright. Thought itself.' },
+    { key: '852', hz: 852, planet: 'Luna',    metal: 'Silver',      room: 0x3a4150, glow: 0xb7c3d8, feel: 'Cool. Quiet. Night.' }
 ];
 function toneFor(key) { return TONES.find(t => t.key === String(key)) || TONES[1]; }
 
@@ -1408,7 +1408,8 @@ class Installation {
             b.dataset.key = t.key;
             b.innerHTML = `<span class="swatch" style="background:#${t.glow.toString(16).padStart(6, '0')}"></span>` +
                 `<span class="tone-hz">${t.hz} Hz</span>` +
-                `<span class="tone-name">${t.planet} · ${t.metal}</span>`;
+                `<span class="tone-name">${t.planet} · ${t.metal}</span>` +
+                `<span class="tone-feel">${t.feel}</span>`;
             b.addEventListener('click', () => this.chooseTone(t.key));
             grid.appendChild(b);
         });
