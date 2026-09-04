@@ -278,6 +278,7 @@ class LiminalEngine3D {
         this.paletteRoomTarget = this.paletteRoom.clone();
         this.paletteGlowTarget = this.paletteGlow.clone();
         this._roomColor = new THREE.Color();
+        this._white = new THREE.Color(0xffffff);
 
         // Solve et coagula: 0 = gathered sphere, 1 = shattered into droplets
         this.shatter = 0;
@@ -369,6 +370,17 @@ class LiminalEngine3D {
         // The furnace: a point light inside the core. Ember red at Caput Corvi, gold at rubedo.
         this.furnace = new THREE.PointLight(0x7a1e0a, 2.0, 9);
         this.group.add(this.furnace);
+
+        // Rim light, behind and to the left, in the tone's colour: cuts the sphere out
+        // of the dark and gives the liquid surface a bright moving edge.
+        this.rim = new THREE.PointLight(0xffffff, 2.4, 10);
+        this.rim.position.set(-2.4, 1.6, -2.0);
+        this.scene.add(this.rim);
+
+        // Low front sparkle so the ripples catch highlights facing the visitor
+        this.sparkle = new THREE.PointLight(0xfff4e0, 0.9, 7);
+        this.sparkle.position.set(1.8, -1.2, 3.2);
+        this.scene.add(this.sparkle);
     }
 
     /* ---------------- environment / mirror ---------------- */
@@ -531,7 +543,7 @@ class LiminalEngine3D {
     /* ---------------- geometry ---------------- */
 
     createCore() {
-        const geometry = new THREE.IcosahedronGeometry(0.72, 14);
+        const geometry = new THREE.IcosahedronGeometry(0.74, 14);
 
         // The icosahedron is non-indexed (every face owns its vertices). To keep the
         // surface smooth after displacement, merge coincident vertices once and compute
@@ -557,14 +569,22 @@ class LiminalEngine3D {
         this.coreDisp = new Float32Array(unique.length);
         this.coreNrm = new Float32Array(unique.length);
 
-        const material = new THREE.MeshStandardMaterial({
+        // Physical material: a wet clearcoat over the metal so it reads as liquid,
+        // and an emissive channel so the tone's glow can beat from inside it.
+        const material = new THREE.MeshPhysicalMaterial({
             color: 0x141416,
             metalness: 1.0,
-            roughness: 0.55,
+            roughness: 0.5,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.12,
             envMap: this.envRT.texture,
-            envMapIntensity: 0.5
+            envMapIntensity: 0.7,
+            emissive: 0x000000,
+            emissiveIntensity: 1.0
         });
         this.core = new THREE.Mesh(geometry, material);
+        this.beatAge = 10;          // seconds since the last drum hit (drives the surface ripple)
+        this._lastBeatCount = 0;
         this.core.castShadow = true;
         this.core.receiveShadow = true;
         this.group.add(this.core);
@@ -915,13 +935,27 @@ class LiminalEngine3D {
         if (!this.inSession) this.opus = Math.min(this.opus, this.opusCap);
     }
 
-    applyStageVisuals(p, dt) {
+    applyStageVisuals(p, dt, beat = 0, motion = 0) {
         const m = this.core.material;
-        // Colour: pitch -> quicksilver -> pale gold -> gold
-        stageLerpColor([0x101012, 0xc4c8cf, 0xdcb85c, 0xf7c744], p, m.color);
-        m.roughness = stageLerp([0.55, 0.22, 0.10, 0.04], p);
+        // Colour: oily pitch -> quicksilver -> pale gold -> gold
+        stageLerpColor([0x16151a, 0xc4c8cf, 0xdcb85c, 0xf7c744], p, m.color);
+        m.roughness = stageLerp([0.5, 0.2, 0.09, 0.04], p);
         m.metalness = stageLerp([1.0, 1.0, 0.97, 0.93], p);
-        m.envMapIntensity = stageLerp([0.4, 1.0, 1.3, 1.6], p);
+        m.envMapIntensity = stageLerp([0.7, 1.1, 1.4, 1.7], p);
+        m.clearcoatRoughness = stageLerp([0.14, 0.08, 0.05, 0.02], p);
+
+        // Inner glow in the tone's colour. It beats with the drum and flares when the
+        // visitor moves, so the sphere is never a dead object: it is lit from within.
+        // Kept low: the metal and the mirror must still read. The beat is the event.
+        const glowBase = stageLerp([0.05, 0.025, 0.02, 0.012], p) + 0.02 * (0.5 + 0.5 * Math.sin(this.time * 0.8));
+        const glowBeat = beat * lerp(0.24, 0.04, p);
+        const glowMotion = motion * 0.06;
+        m.emissive.copy(this.paletteGlow).multiplyScalar(glowBase + glowBeat + glowMotion);
+
+        // Rim light takes the tone and swells on the beat
+        this.rim.color.copy(this.paletteGlow).lerp(this._white, 0.25);
+        this.rim.intensity = stageLerp([2.6, 2.2, 2.4, 2.8], p) + beat * 1.6;
+        this.sparkle.intensity = 0.9 + beat * 0.6;
 
         // Rings warm from iron to gold and stop glowing
         this.rings.forEach(r => {
@@ -968,20 +1002,31 @@ class LiminalEngine3D {
 
     /* ---------------- quicksilver surface ---------------- */
 
-    displaceCore(t, p, motion) {
+    displaceCore(t, p, motion, beatAge = 10) {
         const base = this.coreBase, disp = this.coreDisp, nrm = this.coreNrm, map = this.coreMap;
         const n = this.coreUniqueCount;
-        const amp = stageLerp([0.085, 0.045, 0.02, 0.005], p) + motion * 0.045;
-        const speed = lerp(1.6, 0.7, p);
-        const fineMix = 0.35 * (1 - p);
+        // Liquid at Caput Corvi, settling to glass at Rubedo. Motion agitates it.
+        const amp = stageLerp([0.11, 0.06, 0.028, 0.006], p) + motion * 0.06;
+        const speed = lerp(1.7, 0.6, p);
+        const fineMix = 0.4 * (1 - p);
+        // Slow swells that travel across the surface rather than just wobbling in place
+        const swellMix = lerp(0.9, 0.25, p);
+        // Drum ripple: a ring that runs from the top pole to the bottom on every hit
+        const rippleAmp = lerp(0.07, 0.014, p) * Math.exp(-beatAge * 2.4);
+        const rippleFront = beatAge * 7.5;
 
         // Displace the unique vertices along their radial direction
         for (let u = 0; u < n; u++) {
             const x = base[u * 3], y = base[u * 3 + 1], z = base[u * 3 + 2];
+            const len = Math.sqrt(x * x + y * y + z * z) || 1;
             const wave = Math.sin(x * 6 + t * speed) * Math.cos(y * 6 + t * speed * 0.9) * Math.sin(z * 6 + t * speed * 1.1);
             const fine = Math.sin(x * 14 - t * 2.2) * Math.sin(y * 13 + t * 1.7) * fineMix;
-            const len = Math.sqrt(x * x + y * y + z * z) || 1;
-            const d = (wave + fine) * amp / len;
+            const swell = Math.sin((x * 0.7 + y * 0.5 + z * 0.4) * 4.5 - t * speed * 1.35)
+                        * Math.sin((z * 0.8 - x * 0.3) * 3.5 + t * speed * 0.6) * swellMix;
+            // angle from the top pole, 0..pi
+            const ang = Math.acos(Math.max(-1, Math.min(1, y / len)));
+            const ripple = rippleAmp > 0.0005 ? Math.sin(ang * 9 - rippleFront) * rippleAmp / amp : 0;
+            const d = (wave + fine + swell + ripple) * amp / len;
             disp[u * 3] = x + x * d;
             disp[u * 3 + 1] = y + y * d;
             disp[u * 3 + 2] = z + z * d;
@@ -1035,8 +1080,10 @@ class LiminalEngine3D {
         const A = window.AlchemicalAudio;
         if (A) A.tickBeat(dt);
         const beat = A ? A.beatPulse : 0;
+        if (A && A.beatCount !== this._lastBeatCount) { this._lastBeatCount = A.beatCount; this.beatAge = 0; }
+        else this.beatAge += dt;
 
-        this.applyStageVisuals(p, dt);
+        this.applyStageVisuals(p, dt, beat, motion);
 
         // Environment: refresh the mirror from the camera every other frame
         this.envFrame++;
@@ -1055,7 +1102,7 @@ class LiminalEngine3D {
         }
 
         // 1. Quicksilver surface. Agitation + shatter
-        this.displaceCore(t, p, Math.max(motion, shatter * 0.8));
+        this.displaceCore(t, p, Math.max(motion, shatter * 0.8), this.beatAge);
 
         // Beat pulse on the sphere, stronger early when the drum is present
         const beatAmp = lerp(0.1, 0.035, p) * beat;
@@ -1346,8 +1393,17 @@ class Installation {
             reflectSkip: document.getElementById('reflect-skip'),
             thanks: document.getElementById('thanks'),
             sensorNote: document.getElementById('sensor-note'),
-            toast: document.getElementById('toast')
+            toast: document.getElementById('toast'),
+            soundBtn: document.getElementById('sound-btn'),
+            soundLabel: document.getElementById('sound-label'),
+            camTestBtn: document.getElementById('cam-test-btn'),
+            camPanel: document.getElementById('cam-panel'),
+            camPreview: document.getElementById('cam-preview'),
+            camStatus: document.getElementById('cam-status'),
+            camLevel: document.getElementById('cam-level'),
+            camRetry: document.getElementById('cam-retry')
         };
+        this.camTestOpen = false;
 
         this.sessionStart = 0;
         this.sessionElapsed = 0;
@@ -1474,6 +1530,73 @@ class Installation {
         this.el.sensorNote.textContent = source === 'camera'
             ? 'Camera on. Nothing is recorded or sent. Frames are compared and discarded.'
             : 'No camera. Stillness is read from touch and movement of this device.';
+        if (this.camTestOpen) this.refreshCamTest();
+    }
+
+    /* ---------------- visitor sound control ---------------- */
+
+    toggleMute() {
+        const A = window.AlchemicalAudio;
+        if (!A) return;
+        A.resume();
+        const muted = A.toggleHardwareMute();
+        this.syncMuteUI(muted);
+    }
+
+    syncMuteUI(muted) {
+        if (this.el.soundBtn) {
+            this.el.soundBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+            this.el.soundBtn.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
+        }
+        if (this.el.soundLabel) this.el.soundLabel.textContent = muted ? 'Sound off' : 'Sound on';
+        const cm = document.getElementById('c-mute');
+        if (cm) { cm.textContent = muted ? 'Unmute' : 'Mute'; cm.classList.toggle('is-on', muted); }
+    }
+
+    /* ---------------- camera check (intro screen) ---------------- */
+
+    toggleCamTest(force) {
+        const open = typeof force === 'boolean' ? force : !this.camTestOpen;
+        this.camTestOpen = open;
+        if (this.el.camTestBtn) this.el.camTestBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (this.el.camPanel) this.el.camPanel.hidden = !open;
+        if (open) {
+            // Do not yank someone into the work while they are checking the camera
+            clearTimeout(this._introTimer);
+            clearInterval(this._introCountdown);
+            const small = this.el.intro && this.el.intro.querySelector('.small');
+            if (small) small.textContent = 'Press "I\'m ready" when you are.';
+            this.refreshCamTest();
+        } else if (this.el.camPreview) {
+            this.el.camPreview.srcObject = null;
+        }
+    }
+
+    refreshCamTest() {
+        const v = this.el.camPreview, st = this.el.camStatus, retry = this.el.camRetry;
+        if (!v || !st) return;
+        const onCamera = this.sensor.source === 'camera' && this.sensor.stream;
+        if (onCamera) {
+            if (v.srcObject !== this.sensor.stream) { v.srcObject = this.sensor.stream; v.play().catch(() => {}); }
+            v.classList.remove('is-off');
+            st.innerHTML = '<strong>Camera working.</strong> This is what the metal sees. Move and the bar rises; be still and it falls. Nothing is recorded.';
+            if (retry) retry.hidden = true;
+        } else {
+            v.srcObject = null;
+            v.classList.add('is-off');
+            st.innerHTML = '<strong>No camera.</strong> Your stillness will be read from the mouse or touch instead. If you meant to allow the camera, try again.';
+            if (retry) retry.hidden = false;
+        }
+    }
+
+    async retryCamera() {
+        if (this.el.camStatus) this.el.camStatus.textContent = 'Asking for the camera…';
+        this.settings.camera = true;
+        this.saveSettings();
+        const cc = document.getElementById('c-camera');
+        if (cc) cc.checked = true;
+        this.sensor.enabled = true;
+        await this.startSensor();
     }
 
     /* ---------------- events ---------------- */
@@ -1506,6 +1629,14 @@ class Installation {
         if (this.el.chooseNext) this.el.chooseNext.addEventListener('click', () => { if (this.state === 'choose') this.startIntro(); });
         if (this.el.introBegin) this.el.introBegin.addEventListener('click', () => { if (this.state === 'intro') this.startWork(); });
         if (this.el.end) this.el.end.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (this.state === 'work') this.endSession(false); });
+
+        // Sound button lives on every screen; stop it from also counting as "touch to begin"
+        if (this.el.soundBtn) {
+            this.el.soundBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+            this.el.soundBtn.addEventListener('click', (e) => { e.stopPropagation(); this.toggleMute(); });
+        }
+        if (this.el.camTestBtn) this.el.camTestBtn.addEventListener('click', () => this.toggleCamTest());
+        if (this.el.camRetry) this.el.camRetry.addEventListener('click', () => this.retryCamera());
 
         if (this.el.reflectSave) this.el.reflectSave.addEventListener('click', () => this.saveReflection());
         if (this.el.reflectSkip) this.el.reflectSkip.addEventListener('click', () => this.finishReflection(false));
@@ -1552,6 +1683,10 @@ class Installation {
         clearTimeout(this._introTimer);
         clearInterval(this._introCountdown);
         let left = 15;
+        if (this.camTestOpen) this.toggleCamTest(false);
+        const small = this.el.intro && this.el.intro.querySelector('.small');
+        if (small) small.innerHTML = 'It begins on its own in <span id="intro-count">15</span> seconds.';
+        this.el.introCount = document.getElementById('intro-count');
         if (this.el.introCount) this.el.introCount.textContent = String(left);
         this._introCountdown = setInterval(() => {
             left -= 1;
@@ -1564,6 +1699,7 @@ class Installation {
     startWork() {
         clearTimeout(this._introTimer);
         clearInterval(this._introCountdown);
+        if (this.camTestOpen) this.toggleCamTest(false);
         this.state = 'work';
         this.show(this.el.choose, false);
         this.show(this.el.intro, false);
@@ -1725,6 +1861,7 @@ class Installation {
         this.show(this.el.attract, true);
         if (this.el.hint) this.el.hint.classList.remove('is-visible');
         this.clearVoice();
+        if (this.camTestOpen) this.toggleCamTest(false);
         const A = window.AlchemicalAudio;
         if (A) A.setSessionActive(false);
         // Back to the curator's defaults for the next person
@@ -1756,6 +1893,10 @@ class Installation {
         const A = window.AlchemicalAudio;
 
         if (A && A.isActive) A.setOpus(this.engine.opus);
+
+        if (this.camTestOpen && this.el.camLevel) {
+            this.el.camLevel.style.transform = `scaleX(${clamp01(this.sensor.motion * 1.6).toFixed(3)})`;
+        }
 
         if (this.state === 'work') {
             this.sessionElapsed = (now - this.sessionStart) / 1000;
@@ -1871,12 +2012,7 @@ class Curator {
             if (f.volumeVal) f.volumeVal.textContent = `${s.volume}%`;
             this.inst.applySettings();
         });
-        if (f.mute) f.mute.addEventListener('click', () => {
-            if (!A) return;
-            const m = A.toggleHardwareMute();
-            f.mute.textContent = m ? 'Unmute' : 'Mute';
-            f.mute.classList.toggle('is-on', m);
-        });
+        if (f.mute) f.mute.addEventListener('click', () => this.inst.toggleMute());
         if (f.camera) f.camera.addEventListener('change', (e) => {
             s.camera = e.target.checked;
             this.inst.applySettings();

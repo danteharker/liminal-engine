@@ -280,6 +280,67 @@ body.fan-mode .progress-track,
     outline: none;
 }
 
+/* Persistent sound control, bottom-right on every screen */
+.sound-btn {
+    position: fixed;
+    right: 26px;
+    bottom: 22px;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: rgba(5, 5, 6, 0.35);
+    border: 1px solid transparent;
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+.sound-btn:hover, .sound-btn:focus-visible { color: var(--ink-dim); border-color: var(--rule); outline: none; }
+.sound-btn .sound-cross { display: none; }
+.sound-btn[aria-pressed="true"] { color: var(--gold); }
+.sound-btn[aria-pressed="true"] .sound-waves { display: none; }
+.sound-btn[aria-pressed="true"] .sound-cross { display: block; }
+
+/* Camera check on the intro screen */
+.cam-test { margin: -6px auto 20px; width: min(520px, 100%); text-align: left; }
+.cam-test-btn { font-size: 15px; }
+.cam-test-btn[aria-expanded="true"] { color: var(--ink); }
+.cam-test-btn[aria-expanded="true"] .toggle-mark { background: var(--gold); border-color: var(--gold); }
+.cam-panel {
+    display: grid;
+    grid-template-columns: 168px 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--rule);
+    background: rgba(5, 5, 6, 0.6);
+}
+.cam-panel[hidden] { display: none; }
+.cam-preview {
+    width: 168px;
+    height: 126px;
+    object-fit: cover;
+    background: #000;
+    transform: scaleX(-1);          /* a mirror, like the sphere */
+    filter: grayscale(1) contrast(1.1);
+    border: 1px solid var(--rule);
+}
+.cam-preview.is-off { opacity: 0.25; }
+.cam-readout { min-width: 0; }
+.cam-status { margin: 0 0 10px; font-size: 15px; line-height: 1.4; color: var(--ink-dim); }
+.cam-status strong { color: var(--ink); font-weight: 400; }
+.cam-meter { height: 3px; background: rgba(233, 226, 211, 0.12); }
+.cam-meter > div { height: 100%; width: 100%; background: var(--gold); transform-origin: left; transform: scaleX(0); transition: transform 0.1s linear; }
+.cam-legend { display: flex; justify-content: space-between; margin: 5px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--ink-faint); }
+.cam-readout .text-btn { margin-top: 8px; }
+.cam-readout .text-btn[hidden] { display: none; }
+
 body.fan-mode .quiet-btn { opacity: 0 !important; }
 /* Leave stays visible even in fan mode — the escape hatch */
 body.fan-mode .stage { opacity: 0 !important; }
@@ -569,6 +630,9 @@ body.fan-mode .attract-block .attract-sub { text-shadow: none; }
     html, body { font-size: 16px; }
     #mark { top: 16px; left: 18px; }
     .stage { left: 18px; bottom: 20px; font-size: 15px; }
+    .sound-btn { right: 14px; bottom: 14px; }
+    .cam-panel { grid-template-columns: 1fr; }
+    .cam-preview { width: 100%; height: 150px; }
     .leave-btn { top: 16px; right: 18px; }
     .quiet-btn { right: 18px; bottom: 16px; }
     .reflect-panel { padding: 26px 22px 20px; }

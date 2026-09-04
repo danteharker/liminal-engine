@@ -8,7 +8,7 @@
     <title>Liminal Engine</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23c9a24a' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%23c9a24a'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="stylesheet" href="style.css?v=20260904c">
+    <link rel="stylesheet" href="style.css?v=20260904d">
     <script src="three.min.js"></script>
     <script>if (typeof THREE === 'undefined') { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>'); }</script>
 </head>
@@ -25,6 +25,16 @@
         </svg>
         <span class="mark-title">Liminal Engine</span>
     </header>
+
+    <!-- Persistent sound control: visible on every screen, the visitor's own mute -->
+    <button id="sound-btn" type="button" class="sound-btn" aria-pressed="false" aria-label="Mute sound">
+        <svg class="glyph" viewBox="0 0 24 24" width="13" height="13" focusable="false" aria-hidden="true">
+            <path d="M4 9.5v5h3.2L12 18.5v-13L7.2 9.5H4z" fill="currentColor"/>
+            <path class="sound-waves" d="M15 8.5a4.5 4.5 0 0 1 0 7M17.5 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <path class="sound-cross" d="M15 9.5l5 5M20 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <span id="sound-label">Sound on</span>
+    </button>
 
     <!-- Attract: the resting state. Title, one sentence, one clear button. -->
     <section id="attract" class="layer is-visible" aria-hidden="false">
@@ -64,6 +74,23 @@
                 <li>Stay for <span id="intro-duration">ninety seconds</span>. Follow the drum. At the end it becomes a mirror.</li>
             </ol>
             <p class="intro-warn">Uses rhythmic sound and shifting light. If that does not suit you, leave at any time — press Esc, or tap <em>Leave</em> in the corner.</p>
+
+            <!-- Camera check: shows the visitor what the metal sees -->
+            <div id="cam-test" class="cam-test" aria-live="polite">
+                <button id="cam-test-btn" type="button" class="toggle-btn cam-test-btn" aria-expanded="false">
+                    <span class="toggle-mark" aria-hidden="true"></span>Test the camera
+                </button>
+                <div id="cam-panel" class="cam-panel" hidden>
+                    <video id="cam-preview" class="cam-preview" playsinline muted autoplay></video>
+                    <div class="cam-readout">
+                        <p id="cam-status" class="cam-status"></p>
+                        <div class="cam-meter"><div id="cam-level"></div></div>
+                        <p class="cam-legend"><span>still</span><span>moving</span></p>
+                        <button id="cam-retry" type="button" class="text-btn" hidden>try the camera again</button>
+                    </div>
+                </div>
+            </div>
+
             <button id="intro-begin" type="button" class="big-btn">I'm ready</button>
             <p class="small">It begins on its own in <span id="intro-count">15</span> seconds.</p>
         </div>
@@ -203,7 +230,7 @@
 
     <div id="toast" role="status" aria-live="polite"></div>
 
-    <script src="audio.js?v=20260904c"></script>
-    <script src="engine.js?v=20260904c"></script>
+    <script src="audio.js?v=20260904d"></script>
+    <script src="engine.js?v=20260904d"></script>
 </body>
 </html>
