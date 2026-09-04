@@ -16,7 +16,7 @@ A sphere of liquid metal inside three engraved rings. A webcam measures how much
 
 | opus | stage | material | sound |
 | :--- | :--- | :--- | :--- |
-| 0.00–0.25 | Nigredo | near-black, rough, agitated | filter closed, bellows 84 bpm |
+| 0.00–0.25 | Caput Corvi | near-black, rough, agitated | filter closed, bellows 84 bpm |
 | 0.25–0.50 | Albedo | quicksilver, settling | filter opening, bellows slowing |
 | 0.50–0.75 | Citrinitas | pale gold | pad quieter, bellows fading |
 | 0.75–1.00 | Rubedo | gold mirror reflecting the webcam feed | open, near silence, bellows off |

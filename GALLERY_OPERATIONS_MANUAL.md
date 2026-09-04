@@ -21,7 +21,7 @@ Daily procedure for invigilators and technical staff.
 - **Resting**: the sphere and rings, live, responding to movement in the room, in the colour of the curator's default tone. The title, one sentence, and a **Touch to begin** button. Above them, sentences left by previous visitors fade in and out.
 - **Step 1, Choose your tone**: six tones, each named for a planet and its metal, each with a colour. Tapping one changes the sound and the colour of the room straight away. A **Frame drum: on/off** toggle. **Next**.
 - **Step 2, How it works**: three numbered lines (sit, look, stay still for two minutes) and an **I'm ready** button. It begins on its own after 15 seconds.
-- **The work**: two minutes by default. The stage name (Nigredo, Albedo, Citrinitas, Rubedo) appears quietly in the bottom-left as it changes. A hairline along the bottom edge shows time. If the visitor keeps moving, *Be still. The metal is listening.* fades in until they stop. A small *end* in the bottom-right stops early.
+- **The work**: two minutes by default. The stage name (Caput Corvi, Albedo, Citrinitas, Rubedo) appears quietly in the bottom-left as it changes. A hairline along the bottom edge shows time. If the visitor keeps moving, *Be still. The metal is listening.* fades in until they stop. A small *end* in the bottom-right stops early.
 - **Return**: three bells, *Welcome back. The work is complete.*
 - **The question**: *What did you notice in the space between thoughts?* One field. *Inscribe* or *Leave nothing*. After 45 seconds of no typing it moves on by itself.
 - **Back to resting**. Anything inscribed is now engraved on the outer ring and joins the rotating line. The room returns to the curator's default tone.

@@ -17,7 +17,7 @@
 'use strict';
 
 const STAGES = [
-    { key: 'nigredo',    label: 'Nigredo',    from: 0.00 },
+    { key: 'corvus',    label: 'Caput Corvi',    from: 0.00 },
     { key: 'albedo',     label: 'Albedo',     from: 0.25 },
     { key: 'citrinitas', label: 'Citrinitas', from: 0.50 },
     { key: 'rubedo',     label: 'Rubedo',     from: 0.75 }
@@ -325,7 +325,7 @@ class LiminalEngine3D {
         this.fill.position.set(-3, 1.5, 6);
         this.scene.add(this.fill);
 
-        // The furnace: a point light inside the core. Ember red at nigredo, gold at rubedo.
+        // The furnace: a point light inside the core. Ember red at Caput Corvi, gold at rubedo.
         this.furnace = new THREE.PointLight(0x7a1e0a, 2.0, 9);
         this.group.add(this.furnace);
     }
@@ -589,7 +589,7 @@ class LiminalEngine3D {
             }
             return ['Solve et Coagula', 'Be still', 'Solve et Coagula', 'Be still'];
         }
-        if (i === 1) return ['Nigredo', 'Albedo', 'Citrinitas', 'Rubedo'];
+        if (i === 1) return ['Caput Corvi', 'Albedo', 'Citrinitas', 'Rubedo'];
         return ['Visita Interiora Terrae', 'Rectificando Invenies', 'Occultum Lapidem'];
     }
 

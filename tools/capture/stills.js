@@ -94,11 +94,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await sleep(1500);
     await shot('03-how-it-works');
 
-    // 4. Nigredo — agitated
+    // 4. Caput Corvi — agitated
     await page.evaluate(() => { Liminal.installation.state = 'work'; window.__setMoment(0.06, 0.55); });
-    await showOnly(['hud']); await setStage('Nigredo', 0.08);
+    await showOnly(['hud']); await setStage('Caput Corvi', 0.08);
     await sleep(1800);
-    await shot('04-nigredo');
+    await shot('04-caput-corvi');
 
     // 5. Albedo — quicksilver settling
     await page.evaluate(() => window.__setMoment(0.38, 0.05));

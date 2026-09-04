@@ -11,7 +11,7 @@ Live: https://danteharker.github.io/liminal-engine/
 
 Liminal Engine is a sphere of quicksilver hanging inside three engraved rings. A camera watches the room. Nothing is recorded. Each frame is compared with the last and thrown away; all the machine keeps is one number: how much you are moving.
 
-When you move, the metal ripples and stays black. When you stop, it settles. Over two minutes it passes through the four colours the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you and the room you are sitting in. You only get to see yourself when you stop trying to.
+When you move, the metal ripples and stays black. When you stop, it settles. Over two minutes it passes through the four colours the alchemists gave the Great Work: caput corvi, albedo, citrinitas, rubedo. The raven, the white, the yellow, the red-gold. At the end it is a mirror, and what it reflects is you and the room you are sitting in. You only get to see yourself when you stop trying to.
 
 I made it because I could not be still in front of a screen. Every screen I own wants something from me. I wanted to build one that only responds to nothing.
 
@@ -53,7 +53,7 @@ The wall text is built into the piece (Shift + P) and reads:
 >
 > A sphere of quicksilver hangs inside three engraved rings. A camera watches the room. Nothing is recorded; each frame is compared with the last and thrown away. The only thing the machine keeps is how much you are moving.
 >
-> When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four stages the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you, and the room you are sitting in.
+> When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four stages the alchemists gave the Great Work: caput corvi, albedo, citrinitas, rubedo. The raven, the white, the yellow, the red-gold. At the end it is a mirror, and what it reflects is you, and the room you are sitting in.
 >
 > Before you sit, you choose one of six tones, each tuned to one of the alchemists' planets. The tone sets the sound and the colour of the room. The sound is made live from that tone and a frame drum that slows as the work completes. There is no recording.
 >

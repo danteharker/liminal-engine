@@ -15,7 +15,7 @@ Code: https://github.com/danteharker/liminal-engine
 | `submission/stills/01-attract.jpg` | Resting state. Title, one line, *Touch to begin*. Default tone, Sol. |
 | `submission/stills/02-choose-your-tone.jpg` | Step 1. Six tones; Venus chosen, the room turning verdigris. |
 | `submission/stills/03-how-it-works.jpg` | Step 2. Three lines of instruction. |
-| `submission/stills/04-nigredo.jpg` | Nigredo. A visitor has just sat down; the metal is agitated. |
+| `submission/stills/04-caput-corvi.jpg` | Caput Corvi. A visitor has just sat down; the metal is agitated. |
 | `submission/stills/05-albedo.jpg` | Albedo. Settling to quicksilver. |
 | `submission/stills/06-citrinitas.jpg` | Citrinitas. Warming. |
 | `submission/stills/07-rubedo.jpg` | Rubedo. Gold, mirror, reflecting the room. **Lead image.** |
@@ -80,7 +80,7 @@ Apply by the Google Form:
 https://docs.google.com/forms/d/e/1FAIpQLSdVrHm6oGR713gWE5AQoyYznbnN0TJPfcOjrKHTf1nJ56wGcA/viewform
 (or by email, subject line `Narcissus — Dante Harker`; the address is on the Art Jobs listing once logged in.)
 
-They ask for: artist statement, description of work, images or a video link, technical requirements and dimensions, short biography. All five are in section 3. Use the video link for the video and attach `07-rubedo.jpg`, `04-nigredo.jpg` and `08-the-question.jpg` as the three images if there is a limit.
+They ask for: artist statement, description of work, images or a video link, technical requirements and dimensions, short biography. All five are in section 3. Use the video link for the video and attach `07-rubedo.jpg`, `04-caput-corvi.jpg` and `08-the-question.jpg` as the three images if there is a limit.
 
 Their themes include "mirrors, reflection and doubling", "the attention economy" and "refusal and opacity in digital space". If there is a box for how the work relates to the theme, use this:
 

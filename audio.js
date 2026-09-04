@@ -10,7 +10,7 @@
 
    setOpus(progress) is the one control the installation drives during a
    session. progress runs 0 -> 1 as the visitor becomes still:
-     0.00 - 0.25  Nigredo     dark, closed filter, bellows at 84 bpm
+     0.00 - 0.25  Caput Corvi     dark, closed filter, bellows at 84 bpm
      0.25 - 0.50  Albedo      filter opens, bellows slow
      0.50 - 0.75  Citrinitas  pad warms, bellows almost gone
      0.75 - 1.00  Rubedo      open, quiet, still
@@ -233,7 +233,7 @@ class AlchemicalAudioEngine {
         const p = this.opus;
         const now = this.ctx.currentTime;
 
-        // Filter opens as the work completes: 160 Hz (nigredo) -> 1400 Hz (rubedo)
+        // Filter opens as the work completes: 160 Hz (Caput Corvi) -> 1400 Hz (rubedo)
         const cutoff = 160 * Math.pow(1400 / 160, p);
         this.filter.frequency.setTargetAtTime(cutoff, now, 0.6);
         this.filter.Q.setTargetAtTime(3.0 - p * 2.0, now, 0.6);
