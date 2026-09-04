@@ -1,93 +1,60 @@
-# Liminal Engine: Solve et Coagula
-### Curatorial Statement & Exhibition Catalogue Essay (2026)
+# Liminal Engine
+
+Dante Harker, 2026
+Interactive installation. Camera, projection, generative sound. Dimensions variable.
+
+Live: https://danteharker.github.io/liminal-engine/
 
 ---
 
-```
-   🜍   SOLVE ET COAGULA   🜔
-   "Dissolve the noise of the analytical self;
-    coagulate the golden stillness of pure presence."
-```
+## Artist's statement (250 words)
+
+Liminal Engine is a sphere of quicksilver hanging inside three engraved rings. A camera watches the room. Nothing is recorded. Each frame is compared with the one before it and thrown away; the only thing the machine keeps is a single number, how much you are moving.
+
+When you move, the metal ripples and stays black. When you stop, it settles. Over two minutes it passes through the four colours the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you and the room you are sitting in. You only get to see yourself when you stop trying to.
+
+I made it because I noticed I could not be still in front of a screen. Every screen I own wants something from me. I wanted to build one that only responds to nothing.
+
+The sound is made live from six tones and a frame drum. The drum is the bellows of the furnace; it slows as the work completes and falls silent at gold. The rings chime as they turn, on harmonics of whichever tone the curator has chosen. There is no recording anywhere in the piece.
+
+When the mirror fades, one question appears: what did you notice in the space between thoughts? If you answer, your sentence is engraved on the outer ring for the next person. The rings fill up with strangers' sentences over the course of a show.
+
+It is a machine for practising a very old thing.
 
 ---
 
-## 1. Exhibition Overview
+## Short description (50 words)
 
-- **Title**: *Liminal Engine (Solve et Coagula)*
-- **Year of Realisation**: 2026
-- **Classification**: Interactive Generative Kinetic Sculpture / Cybernetic Meditation Sanctuary
-- **Medium**: Custom real-time WebGL simulation, custom Solfeggio binaural harmonic sound engine, quicksilver fluid displacement dynamics, somatic still-gaze entrainment system, collective phenomenological reflection archive, interactive pedestal kiosk.
-- **Dimensions**: Variable site-specific installation (recommended: 4K floor-to-ceiling projection or ultra-wide immersive display; freestanding pedestal terminal).
+A sphere of liquid metal that only settles, and only turns to gold, when the visitor is still. A camera measures movement in the room without recording it. At the end the sphere becomes a mirror. Visitors can leave a sentence, which is engraved on the outer ring for the next person.
 
 ---
 
-## 2. Concept & Aesthetic Philosophy
+## One line
 
-*Liminal Engine* operates at the intersection of Renaissance Hermetic philosophy, Daoist internal alchemy (*Neidan*), and contemporary neuro-cybernetics. In a cultural epoch defined by sensory hyper-acceleration, fragmented algorithmic attention, and relentless internal monologue, the artwork functions not as entertainment, but as an **instrument of radical cognitive deceleration**.
-
-The title invokes the central axiom of Western alchemy: **Solve et Coagula** (*dissolve and coagulate*). Historically understood as the physical transmutation of base lead into spiritual gold, here it is reimagined as an ontological operation of consciousness:
-
-1. **Solve (*Dissolution*)**: The dispersal of obsessive narrative cognition, defensive ego postures, and temporal anxieties.
-2. **Coagula (*Coagulation*)**: The gathering and crystallisation of awareness into an unshakeable, unified focal point: the **Space Between Thoughts**.
-
-At the visual centre of the installation floats an astrolabe of concentric brass and silver celestial rings, inscribed with Cabalistic seals, sacred planetary trigrams, and hexagrams from the *I Ching*. Suspended at the exact geometric origin of these revolving rings is a droplet of **quicksilver** (mercurial liquid metal). 
-
-The quicksilver core is alive: its surface ripples in direct correspondence with human volatility, attention scatter, and restless motion. When a visitor engages the installation and sits in stillness, the turbulent liquid waves dampen to zero. At peak stillness, the quicksilver undergoes its final alchemical transmutation, settling into an unblemished, reflective **liquid golden mirror**. In this mirror, the observer no longer watches a machine; the machine reflects the quietude of their own mind.
+The mirror only becomes still when you do.
 
 ---
 
-## 3. Acoustic Architecture & Harmonic Resonance
+## Notes for curators
 
-The soundscape of *Liminal Engine* is generated in real time using high-precision Web Audio synthesis, eschewing looped audio recordings in favour of living mathematical frequencies:
-
-- **Solfeggio Harmonic Scales**: The fundamental drone is calibrated to the cosmic standard of **A4 = 432 Hz** (yielding a low C2 drone of 64.22 Hz), with user-selectable resonant peaks including **528 Hz** (associated with cardiac coherence and cellular calm) and **741 Hz** (associated with default mode network quieting).
-- **Binaural Alpha & Theta Entrainment**: A subtle frequency difference (+4 Hz to +10 Hz) is split bilaterally across left and right stereo channels. When experienced through spatial gallery monitors or high-fidelity headphones, this induces bilateral hemispheric synchronisation, steering waking beta brainwave states into hypnagogic alpha and theta depths.
-- **Rhythmic Frame Drumming & Resonant Chimes**: Shamanic frame drum pulses and metallic wind chimes ring proportionally to the orbital precession of the astrolabe rings, anchoring somatic embodiment in the physical room.
+- The camera is essential to the piece but not to its operation. If a camera is denied or absent, stillness is read from the touchscreen and the device's motion sensors, and the sphere reflects a built-in room instead of the visitor.
+- No visitor data is stored except the sentences they choose to leave, which are held in the browser's local storage on the exhibition machine and can be exported or cleared by the curator at any time.
+- I would rather the piece was shown in a dark room with a bench than on a monitor on a wall. It is meant to be sat with.
 
 ---
 
-## 4. The Collective Memory Wall: Phenomenological Archiving
+## Wall text
 
-Art installations are often ephemeral, passive viewings. *Liminal Engine* incorporates an ongoing, participatory **Collective Memory Wall**. Upon awakening from their stillness cycle, each visitor is invited to inscribe a short reflection capturing what they perceived in the *"space between thoughts"*.
+The wall text is built into the piece (Shift + P) and reads:
 
-These notes are immediately woven into a living ticker visible to future attendees. Across days, weeks, and months of exhibition, the installation becomes a repository of human vulnerability, serenity, and communal presence—a counter-archive against modern isolation.
-
----
-
-## 5. Curatorial Wall Plaque Text
-
-*(For mounting beside the physical pedestal or gallery entrance)*
-
-```
-═══════════════════════════════════════════════════════════════
-                      LIMINAL ENGINE
-                 SOLVE ET COAGULA (2026)
-═══════════════════════════════════════════════════════════════
-
-Interactive generative WebGL simulation, custom Solfeggio binaural 
-harmonic synthesiser, quicksilver fluid dynamics, real-time 
-bio-stillness entrainment, collective phenomenological archive.
-
-Liminal Engine is a contemplative sanctuary suspended between 
-cybernetics and alchemy. In an era marked by relentless sensory 
-acceleration and algorithmic fragmentation, the work acts as an 
-instrument of cognitive deceleration.
-
-The concentric astrolabe rings calculate the celestial precession 
-of the observer's mind, while the central quicksilver core responds 
-directly to physical stillness: the more physically quiet the 
-participant becomes, the more the turbulent fluid calms, transmuting 
-into an unblemished golden mirror that reflects the quiet void 
-between thoughts.
-
-Upon completing their journey, each participant is invited to 
-inscribe their ephemeral sensory observation into the collective 
-memory wall, weaving individual moments of stillness into a living 
-tapestry of shared presence.
-
-PARTICIPATION:
-  I.   CALIBRATE — Select your harmonic tuning and duration.
-  II.  STILL     — Rest your hands. Observe the quicksilver mirror.
-  III. INSCRIBE  — Gift your reflection to future travelers.
-═══════════════════════════════════════════════════════════════
-```
+> **Liminal Engine**
+> Dante Harker · 2026
+> Interactive installation. Camera, projection, generative sound. Dimensions variable.
+>
+> A sphere of quicksilver hangs inside three engraved rings. A camera watches the room. Nothing is recorded; each frame is compared with the last and thrown away. The only thing the machine keeps is how much you are moving.
+>
+> When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four stages the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you, and the room you are sitting in.
+>
+> The sound is made live from six tones, tuned by the curator, and a frame drum that slows as the work completes. There is no recording.
+>
+> If you want to, you can leave a sentence. It is engraved on the outer ring for the next person.

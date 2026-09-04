@@ -1,85 +1,84 @@
-# Liminal Engine: Gallery Operations & Docent Handbook
+# Liminal Engine — Operations
 
-A daily step-by-step operating procedure for gallery docents, invigilators, and technical staff.
-
----
-
-## 1. Morning Power-On Sequence
-
-1. **Power Equipment Rack & Audio System**:
-   - Turn on the external audio monitors and subwoofer (ensure master fader is set to calibrated gallery level).
-   - Turn on the projector / large format display.
-2. **Boot Host Computer**:
-   - Power on the computer. Log in with the standard exhibition account.
-3. **Launch the Installation**:
-   - Double-click `run.bat` on the desktop (or in `c:\Users\dante\.gemini\antigravity\scratch\alchemical-engine-v2\run.bat`).
-   - The local server will start and automatically launch the browser at `http://localhost:8080/`.
-4. **Enter Fullscreen Kiosk Mode**:
-   - Press **F11** or click the **⛶ FULLSCREEN** button in the bottom-left corner.
-   - The installation is now active and ready for visitors in the **Attract Mode** resting state.
+Daily procedure for invigilators and technical staff.
 
 ---
 
-## 2. Daily Visitor Interaction & Monitoring
+## 1. Morning
 
-- **Attract Mode**: When no visitor is interacting, the system automatically drifts into a gentle, slow camera orbit with subtle atmospheric sound. The screen displays *"TOUCH SCREEN OR STAND TO BEGIN"*.
-- **Visitor Flow**:
-  1. A visitor touches the screen or moves the cursor.
-  2. The **Calibration Wizard** appears, inviting the visitor to pick an atmospheric theme (Golden Stillness, Violet Drift, Ether Void), Solfeggio sound tuning (432Hz, 528Hz, 741Hz), and duration (1 to 3 minutes).
-  3. Clicking *"BEGIN IMMERSION"* clears the screen for pure contemplative focus.
-  4. At the conclusion of the session, a gentle 3-chime triad rings, and the reflection screen appears.
-  5. The visitor can select a feeling rating (*Calmer, Re-Centred, Inspired, Rested*) and optionally type a note into the collective memory wall.
-  6. Submitting the note immediately adds it to the scrolling memory ticker.
-  7. If untouched for 45 seconds, the installation automatically returns to the start screen.
+1. Power on the audio (monitors, then sub) and the projector or display.
+2. Power on the computer and log in to the exhibition account.
+3. Double-click `run.bat` (Windows) or run `node server.js`. The browser opens at `http://localhost:8080/`.
+4. If the browser is not already in kiosk mode, press **Shift + F** for fullscreen.
+5. If asked, allow the camera. The prompt appears once.
+6. Press **Shift + C** and check the monitor line reads `sensor camera`. If it reads `pointer (camera dark)`, the camera is covered, unplugged, or the room is too dark for it. Close the panel with **Esc**.
+7. Sit on the bench for a minute and confirm the sphere begins to settle and lighten.
 
 ---
 
-## 3. Curator Admin Panel (Hidden Hotkey)
+## 2. What a visitor sees
 
-To calibrate settings, manage visitor reflections, or adjust volume without disrupting the visual display:
-- Press **Shift + C** simultaneously on a keyboard, or click the subtle **⚙ CURATOR** button in the bottom-left.
-- The **Exhibition & Curatorial Setup** drawer will slide into view:
-  - **Master Exhibition Volume**: Adjust room loudness smoothly with the slider.
-  - **Resolution Scaling**: Switch between Native (1.0x), High Density (1.5x), or 4K Retina (2.0x).
-  - **Idle Attract Delay**: Change timeout length (30s, 45s, 60s, 120s, or Never).
-  - **Tamper Lock**: Ensures visitors cannot open right-click context menus or navigate away.
-  - **Memory Wall Management**:
-    - View all visitor notes.
-    - Click **✕** next to any inappropriate or blank note to immediately delete it.
-    - Click **💾 EXPORT AS JSON** at the end of each week to archive visitor submissions to a file.
-    - Click **↺ RESET TO DEFAULT ARCHIVE** to restore clean initial entries.
-- Press **Escape**, click **✕ CLOSE**, or click **APPLY & RETURN** to resume the exhibition.
+- **Resting**: the sphere and rings, live, responding to movement in the room. One line at the bottom: *Be still.* Below it, sentences left by previous visitors fade in and out.
+- **Beginning**: a touch or click anywhere starts a session. One instruction appears for a few seconds, then disappears.
+- **The work**: two minutes by default. The stage name (Nigredo, Albedo, Citrinitas, Rubedo) appears quietly in the bottom-left as it changes. A hairline along the bottom edge shows time. A small *end* in the bottom-right stops early.
+- **Return**: three bells and *Welcome back.*
+- **The question**: *What did you notice in the space between thoughts?* One field. *Inscribe* or *Leave nothing*. After 45 seconds of no typing it moves on by itself.
+- **Back to resting**. Anything inscribed is now engraved on the outer ring and joins the rotating line under *Be still.*
+
+Nobody has to do anything for the piece to run. It rests when nobody is there and it comes back to rest on its own.
 
 ---
 
-## 4. Museum Wall Plaque Display
+## 3. Curator panel — Shift + C
 
-- To display the full museum wall text, artistic credits, and visitor instructions on-screen:
-  - Click **🕮 WALL PLAQUE** in the bottom-left corner, or press **Shift + P**.
-  - The museum plaque card will fade in over the ambient scene.
-  - Click **✕ CLOSE** or press **Escape** to dismiss.
-
----
-
-## 5. Quick Keyboard Reference for Docents
-
-| Hotkey | Action |
+| Setting | What it does |
 | :--- | :--- |
-| **F11** | Toggle edge-to-edge fullscreen |
-| **Shift + C** | Open / Close Curatorial Admin Panel |
-| **Shift + P** | Open / Close Museum Wall Plaque |
-| **Escape** | Dismiss any open modal or return to active scene |
-| **M** | Mute / Unmute audio immediately |
-| **Spacebar** | Wake installation from Attract Mode |
+| Session | Length of the work: 1, 1.5, 2, 3 or 5 minutes (default 2) |
+| Idle return | How long an abandoned intro waits before returning to rest |
+| Tuning | The tone the piece is built on. Six choices, named by the planetary metals. Default 432 Hz · Sol |
+| Bellows | Frame drum on or off, and its pattern (Pulse, Heartbeat, Roll) |
+| Volume | Room level. Mute is separate and immediate |
+| Camera sensor | Turn the camera off to run on touch and device motion only |
+| Render scale | 1.0 on modest machines, 2.0 for 4K on a capable GPU |
+| Kiosk lock | Blocks right-click, F5, Ctrl+R/W/U/S and drag. Leave on |
+| Fullscreen | Same as Shift + F |
+| Inscriptions | Every sentence visitors have left. *remove* deletes one. *export* saves them all as JSON. *clear* removes all of them |
+
+The monitor line shows what the sensor is using, a live movement meter, and the current stage and progress.
+
+Settings are remembered between restarts.
 
 ---
 
-## 6. Evening Shutdown Sequence
+## 4. Wall text — Shift + P
 
-1. Press **Shift + C** to open the Curator Panel.
-2. (Optional) Click **💾 EXPORT AS JSON** to preserve the day's visitor reflections.
-3. Press **F11** (or Alt + F4) to exit the browser.
-4. Close the `run.bat` terminal window.
-5. Power down the audio monitors / subwoofer first (to prevent speaker pop).
-6. Power off the projector or commercial display.
-7. Shut down the computer.
+Shows the wall text on screen. **Esc** or *close* dismisses it.
+
+---
+
+## 5. Keys
+
+| Key | Action |
+| :--- | :--- |
+| Touch / click / Space / Enter | Begin a session (when resting) |
+| Esc | End a session early; close any panel |
+| Shift + C | Curator panel |
+| Shift + P | Wall text |
+| Shift + F | Fullscreen |
+
+---
+
+## 6. If something looks wrong
+
+- **Sphere never lightens while someone sits still**: check Shift + C. If the sensor line reads `pointer`, the camera is not being used. Check it is connected and uncovered, and that there is a little light on the sitter.
+- **Sphere goes gold while nobody is there**: normal in a quiet room. Outside a session it stops at silver; it only goes fully gold during a session.
+- **No sound**: a browser needs one touch or click before it can make sound. Touch the screen once. Then check mute in Shift + C.
+- **Page is blank**: the server is not running. Re-run `run.bat`.
+
+---
+
+## 7. Evening
+
+1. **Shift + C**, then *export* if you want to keep the day's inscriptions.
+2. Close the browser (Alt + F4) and the `run.bat` window.
+3. Power down the sub, then the monitors, then the projector, then the computer.
