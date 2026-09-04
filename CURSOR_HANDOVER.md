@@ -92,6 +92,7 @@ Before this handover, the following major fixes were implemented and verified:
 7. **100% DOM ID Integrity**: Verified that all `getElementById` calls in JavaScript exist in `index.html`.
 8. **Local Typefaces (Cursor, Sep 2026)**: Replaced the Google Fonts CDN links with bundled `.woff2` files in `fonts/` and `fonts/fonts.css`. Previously, an offline gallery would have fallen back to system serif fonts for the entire UI and the astrolabe ring engravings. Verified in headless Chrome: all three families load from disk, zero external requests.
 9. **Version Control**: Repository initialised and pushed to GitHub (`danteharker/liminal-engine`, public, `main` branch).
+10. **Live Demo (GitHub Pages)**: Deployed from `main` `/`. Public URL: `https://danteharker.github.io/liminal-engine/`. Smoke-tested (assets 200, key DOM present, zero uncaught errors, no Google Fonts CDN).
 
 ---
 
@@ -113,10 +114,9 @@ Before this handover, the following major fixes were implemented and verified:
 
 When continuing development in Cursor, here are the recommended areas of focus:
 
-1. **Online Demo Hosting (For Gallery Submissions)**:
-   - Deploy this directory to **Vercel**, **Netlify**, or **GitHub Pages**.
-   - Because it's pure HTML/CSS/JS with local Three.js, it deploys instantly with zero build step.
-   - Recommended URL: `https://liminal-engine.art` or `https://[your-name].vercel.app`.
+1. **Online Demo Hosting (DONE)**:
+   - Live on GitHub Pages: `https://danteharker.github.io/liminal-engine/`
+   - Optional later: custom domain (`liminal-engine.art`) pointed at Pages.
 2. **Video Trailer & Pitch Capture**:
    - Capture a 60-second 4K video showing Attract Mode -> Calibration -> Stillness Golden Mirror -> Reflection Inscription for curators.
 3. **Pitch Deck Assembly**:
