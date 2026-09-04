@@ -1290,13 +1290,13 @@ class Installation {
             visitorChoice: true,
             fanMode: false,
             pixelRatio: 2,
-            settingsVersion: 2
+            settingsVersion: 3
         }, this.loadSettings());
-        // Migrate older installs onto the narrative defaults once
-        if ((this.settings.settingsVersion || 0) < 2) {
+        // Migrate older installs onto the narrative defaults
+        if ((this.settings.settingsVersion || 0) < 3) {
             this.settings.bellowsPattern = 'shamanic';
             this.settings.durationSeconds = 90;
-            this.settings.settingsVersion = 2;
+            this.settings.settingsVersion = 3;
         }
 
         // The visitor's choices for this sitting. They start from the curator's defaults
