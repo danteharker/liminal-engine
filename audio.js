@@ -35,7 +35,7 @@ class AlchemicalAudioEngine {
         // Solfeggio Scale Map (Harmonics, descriptions, and visual properties)
         this.solfeggioFrequencies = {
             '432': { name: 'NEURAL SYNCHRONY', drone: 64.22, chime: 432, color: '#ffd700', desc: 'NEURAL SYNCHRONY: Induces theta-delta coherence (64.22Hz carrier, 432Hz peak resonance) to dissolve analytical chatter and quiet self-talk.' },
-            '528': { name: 'CORTICAL CALMING', drone: 66.00, chime: 528, color: '#06d6a0', desc: 'CORTICAL CALMING: Dampens sympathetic arousal and stress feedback loops in prefrontal cortex networks to stabilize visceral relaxation.' },
+            '528': { name: 'CORTICAL CALMING', drone: 66.00, chime: 528, color: '#06d6a0', desc: 'CORTICAL CALMING: Dampens sympathetic arousal and stress feedback loops in prefrontal cortex networks to stabilise visceral relaxation.' },
             '396': { name: 'AMYGDALA DAMPENING', drone: 49.50, chime: 396, color: '#ff5e62', desc: 'AMYGDALA DAMPENING: De-escalates threat-detection cycles in the limbic system, grounding active consciousness in absolute safety.' },
             '639': { name: 'HEMISPHERIC BALANCE', drone: 79.88, chime: 639, color: '#ff9f1c', desc: 'HEMISPHERIC BALANCE: Encourages bilateral left-right cerebral integration, facilitating integrated, non-narrative cognitive processing.' },
             '741': { name: 'DEFAULT MODE QUIETING', drone: 46.31, chime: 741, color: '#00f5ff', desc: 'DEFAULT MODE QUIETING: Dampens default mode network activity, encouraging immediate dissolution of active logical narratives.' },
@@ -97,7 +97,7 @@ class AlchemicalAudioEngine {
         this.filter.frequency.setValueAtTime(250, this.ctx.currentTime);
         this.filter.connect(this.masterGain);
         
-        // Initialize Left and Right Stereo Panners for Binaural Separation
+        // Initialise Left and Right Stereo Panners for Binaural Separation
         this.pannerLeft = this.ctx.createStereoPanner();
         this.pannerLeft.pan.setValueAtTime(-1, this.ctx.currentTime);
         this.pannerLeft.connect(this.filter);
@@ -106,21 +106,21 @@ class AlchemicalAudioEngine {
         this.pannerRight.pan.setValueAtTime(1, this.ctx.currentTime);
         this.pannerRight.connect(this.filter);
         
-        // Initialize Core Left Drone Oscillator (Solfeggio C2 base)
+        // Initialise Core Left Drone Oscillator (Solfeggio C2 base)
         this.droneOscLeft = this.ctx.createOscillator();
         this.droneOscLeft.type = 'triangle';
         this.droneOscLeft.frequency.setValueAtTime(this.baseDroneFreq, this.ctx.currentTime);
         this.droneOscLeft.connect(this.pannerLeft);
         this.droneOscLeft.start();
         
-        // Initialize Core Right Drone Oscillator (+10Hz offset for Binaural Alpha wave)
+        // Initialise Core Right Drone Oscillator (+10Hz offset for Binaural Alpha wave)
         this.droneOscRight = this.ctx.createOscillator();
         this.droneOscRight.type = 'triangle';
         this.droneOscRight.frequency.setValueAtTime(this.baseDroneFreq + 10, this.ctx.currentTime);
         this.droneOscRight.connect(this.pannerRight);
         this.droneOscRight.start();
         
-        // Initialize Drone LFO (Creates the breathing, oscillating filter sweep)
+        // Initialise Drone LFO (Creates the breathing, oscillating filter sweep)
         this.droneLfo = this.ctx.createOscillator();
         this.droneLfo.type = 'sine';
         this.droneLfo.frequency.setValueAtTime(0.1, this.ctx.currentTime); // Slow, breathing rate by default
@@ -132,7 +132,7 @@ class AlchemicalAudioEngine {
         this.droneLfoGain.connect(this.filter.frequency);
         this.droneLfo.start();
         
-        // Initialize Cathedral Delay / Echo Chamber
+        // Initialise Cathedral Delay / Echo Chamber
         this.delayNode = this.ctx.createDelay(2.0);
         this.delayGain = this.ctx.createGain();
         
@@ -143,7 +143,7 @@ class AlchemicalAudioEngine {
         this.delayGain.connect(this.delayNode);
         this.delayNode.connect(this.masterGain);
         
-        // Initialize Generative Chord Pad Synth (Lush ambient background cloud)
+        // Initialise Generative Chord Pad Synth (Lush ambient background cloud)
         this.padGainMaster = this.ctx.createGain();
         this.padGainMaster.gain.setValueAtTime(0.06, this.ctx.currentTime); // Subtle background presence
         this.padGainMaster.connect(this.filter); // Route through dynamic filter
@@ -172,7 +172,7 @@ class AlchemicalAudioEngine {
         this.isActive = true;
         this.applyPhilosophicalState();
         
-        // Start synchronized alchemical heartbeat loop
+        // Start synchronised alchemical heartbeat loop
         this.scheduleNextHeartbeat();
         
         // Start generative chord morph progression loop
@@ -440,7 +440,7 @@ class AlchemicalAudioEngine {
         const config = this.solfeggioFrequencies[freqStr];
         this.baseDroneFreq = config.drone;
         
-        // Update DOM description and border color highlight if they exist
+        // Update DOM description and border colour highlight if they exist
         const descEl = document.getElementById('solfeggio-description');
         if (descEl) {
             descEl.textContent = config.desc;
@@ -454,7 +454,7 @@ class AlchemicalAudioEngine {
         this.droneOscLeft.frequency.exponentialRampToValueAtTime(config.drone, now + 1.2);
         this.droneOscRight.frequency.exponentialRampToValueAtTime(config.drone + 10, now + 1.2);
         
-        // Smoothly shift the pad base notes to the new tuning center
+        // Smoothly shift the pad base notes to the new tuning centre
         this.morphToNextChord();
         
         // Play an alignment bell chime in the exact sacred frequency!
@@ -488,7 +488,7 @@ class AlchemicalAudioEngine {
         }
     }
 
-    // Synthesize a metallic chime / bell when a ring is spun or a rune is inscribed
+    // Synthesise a metallic chime / bell when a ring is spun or a rune is inscribed
     playChime(type = 'silver') {
         if (!this.isActive || !this.ctx) return;
 
@@ -554,7 +554,7 @@ class AlchemicalAudioEngine {
         mainGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.0);
     }
     
-    // Synthesize a majestic celestial choir swell sweep
+    // Synthesise a majestic celestial choir swell sweep
     playChoirSwell() {
         if (!this.isActive || !this.ctx) return;
         
@@ -606,14 +606,14 @@ class AlchemicalAudioEngine {
         }
     }
     
-    // Synthesize a gentle, alchemical triple-chime callback sequence
+    // Synthesise a gentle, alchemical triple-chime callback sequence
     playCallbackChimeSequence() {
         if (!this.isActive || !this.ctx) return;
         
         // 1. Play first gentle bell chime (528Hz - Transformation & DNA Repair)
         this.playChime(528);
         
-        // 2. Play second chime (639Hz - Harmonizing Connection) after 1.2s
+        // 2. Play second chime (639Hz - Harmonising Connection) after 1.2s
         setTimeout(() => {
             if (this.isActive && this.ctx) {
                 this.playChime(639);
@@ -630,7 +630,7 @@ class AlchemicalAudioEngine {
         }, 2400);
     }
     
-    // Heartbeat loop scheduler (synchronized to states)
+    // Heartbeat loop scheduler (synchronised to states)
     scheduleNextHeartbeat() {
         if (!this.isActive || !this.ctx) return;
         
@@ -686,7 +686,7 @@ class AlchemicalAudioEngine {
     toggleJourneyDrumming(active) {
         this.journeyDrummingActive = active;
         if (active && (!this.isActive || !this.ctx)) {
-            // Automatically initialize the master audio context
+            // Automatically initialise the master audio context
             this.toggle();
         } else {
             if (active) {
@@ -869,7 +869,7 @@ class AlchemicalAudioEngine {
         this.journeyDrummingActive = true;
         
         if (!this.isActive || !this.ctx) {
-            // Automatically initialize the master audio context
+            // Automatically initialise the master audio context
             this.toggle();
         } else {
             // Ensure loop is running and play a preview hit

@@ -28,7 +28,7 @@ The installation supports two primary presentation configurations:
 
 ### Option B: Large-Format Commercial Display
 - **Display**: 75" to 98" commercial-grade 4K anti-glare display (e.g., Samsung / Sony Professional / LG OLED), rated for 24/7 continuous operation.
-- **Mounting**: Flush architectural wall recess or custom floor easel mount at participant eye-level (center at 1.45m from finished floor).
+- **Mounting**: Flush architectural wall recess or custom floor easel mount at participant eye-level (centre at 1.45m from finished floor).
 
 ---
 
@@ -46,7 +46,7 @@ The installation supports two primary presentation configurations:
 
 - **Speaker Configuration**: High-fidelity stereo spatial sound with dedicated sub-bass reinforcement (2.1 or 4.1 surround).
 - **Monitors**: 2× Active near-field studio monitors (e.g., Genelec 8030C, Neumann KH 120, or equivalent), positioned flanking the projection surface at ear level.
-- **Subwoofer**: 1× Active studio subwoofer (down to 25 Hz) positioned concealed near the center base of the projection wall. This is critical for conveying the visceral somatic weight of the 64.22 Hz and 49.5 Hz Solfeggio sub-drones.
+- **Subwoofer**: 1× Active studio subwoofer (down to 25 Hz) positioned concealed near the centre base of the projection wall. This is critical for conveying the visceral somatic weight of the 64.22 Hz and 49.5 Hz Solfeggio sub-drones.
 - **Audio Interface**: Professional low-noise external USB-C DAC (Focusrite Scarlett, MOTU, or Universal Audio) feeding balanced XLR cables to the active monitors.
 - **Headphone Alternative**: In noisy group exhibitions, 2× high-grade closed-back over-ear headphones (e.g., Sennheiser HD 600 or Audio-Technica ATH-M50x) can be suspended from the pedestal.
 

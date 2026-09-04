@@ -35,7 +35,7 @@ class AlchemicalEngine3D {
         
         // Secret states
         this.solarFlareActive = false;
-        this.stabilized = false;
+        this.stabilised = false;
         this.floatingOffset = 0;
         
         // Touch Ripple Physics & Raycasting
@@ -50,7 +50,7 @@ class AlchemicalEngine3D {
             intensity: 1.0
         };
         
-        // Time-Locked Color schemes
+        // Time-Locked Colour schemes
         this.timeLockedColors = null;
 
         // Phase 2 State Variables
@@ -174,7 +174,7 @@ class AlchemicalEngine3D {
         this.createShadowPlayWall();
         this.createCelestialBridges();
         
-        // 5. Initialize Mouse Events
+        // 5. Initialise Mouse Events
         this.setupEvents();
         
         // 6. Trigger Animation Loop
@@ -486,7 +486,7 @@ class AlchemicalEngine3D {
             velocities[i * 3 + 1] = positions[i * 3 + 1] * 0.15;
             velocities[i * 3 + 2] = positions[i * 3 + 2] * 0.15;
             
-            // Initial color blend
+            // Initial colour blend
             color.setHex(0xffaa00); // Warm amber gold
             colors[i * 3] = color.r;
             colors[i * 3 + 1] = color.g;
@@ -596,7 +596,7 @@ class AlchemicalEngine3D {
         // Gazer base stand, ring support, and mirror lens have been removed to eliminate distraction.
         this.gazerMesh = new THREE.Group(); // Keep group reference to avoid breaking empty references
 
-        // Volumetric refraction beams group - centered on the quicksilver core
+        // Volumetric refraction beams group - centred on the quicksilver core
         this.refractionBeams = new THREE.Group();
         this.refractionBeams.position.set(0, 0, 0);
         this.engineGroup.add(this.refractionBeams);
@@ -634,7 +634,7 @@ class AlchemicalEngine3D {
             void main() {
                 // 1. Vertical fade-out: soft smooth step at both ends of the cylinder
                 float verticalFade = sin(vUv.y * 3.14159265);
-                verticalFade = pow(verticalFade, 1.2); // make center slightly wider
+                verticalFade = pow(verticalFade, 1.2); // make centre slightly wider
 
                 // 2. Radial fade-out silhouette edge smoothing (Fresnel look)
                 vec3 normal = normalize(vNormal);
@@ -649,14 +649,14 @@ class AlchemicalEngine3D {
                 // 4. Combine and scale alpha
                 float alpha = uOpacity * verticalFade * edgeFade * (0.35 + 0.65 * noise);
                 
-                // 5. Add dynamic color highlights in high-density regions
+                // 5. Add dynamic colour highlights in high-density regions
                 vec3 finalColor = uColor * (1.0 + 0.3 * noise);
 
                 gl_FragColor = vec4(finalColor, alpha);
             }
         `;
 
-        // Create 3-4 individual refracting color shafts
+        // Create 3-4 individual refracting colour shafts
         const colors = [0xff00ff, 0x00ffff, 0xffff00, 0x7b00ff];
         this.beams = [];
         
@@ -1013,7 +1013,7 @@ class AlchemicalEngine3D {
                     const input = document.getElementById('survey-reflection-input');
                     if (input) setTimeout(() => input.focus(), 800);
                 } else {
-                    this.finalizeMeditationCleanup();
+                    this.finaliseMeditationCleanup();
                 }
 
                 if (window.TabletWizard) {
@@ -1022,11 +1022,11 @@ class AlchemicalEngine3D {
             }, 3800);
         } else {
             // Cancelled early, immediately restore everything
-            this.finalizeMeditationCleanup();
+            this.finaliseMeditationCleanup();
         }
     }
     
-    finalizeMeditationCleanup() {
+    finaliseMeditationCleanup() {
         // Restore sidebar
         const dashboard = document.getElementById('alchemy-dashboard');
         const canvasContainer = document.getElementById('canvas-container');
@@ -1075,7 +1075,7 @@ class AlchemicalEngine3D {
             const dashboard = document.getElementById('alchemy-dashboard');
             if (dashboard) dashboard.classList.add('collapsed');
             
-            // Force WebGL clear colors to pitch black
+            // Force WebGL clear colours to pitch black
             if (this.renderer) this.renderer.setClearColor(0x000000);
             if (this.scene) {
                 this.scene.fog.color.setHex(0x000000);
@@ -1097,7 +1097,7 @@ class AlchemicalEngine3D {
             const dashboard = document.getElementById('alchemy-dashboard');
             if (dashboard) dashboard.classList.remove('collapsed');
             
-            // Restore normal Three.js clear colors
+            // Restore normal Three.js clear colours
             const fogColor = this.timeLockedColors ? this.timeLockedColors.fogColor : 0x07070a;
             if (this.renderer) this.renderer.setClearColor(this.state === 'zhenren' ? fogColor : 0x0c0418);
             if (this.scene) {
@@ -1113,7 +1113,7 @@ class AlchemicalEngine3D {
         const canvas = document.querySelector('#canvas-container canvas');
         if (!canvas) return;
         
-        console.log("Initializing alchemical canvas recording stream...");
+        console.log("Initialising alchemical canvas recording stream...");
         const stream = canvas.captureStream(60); // 60fps
         
         let options = { mimeType: 'video/webm;codecs=vp9' };
@@ -1386,7 +1386,7 @@ class AlchemicalEngine3D {
             this.raycaster.ray.intersectPlane(planeZ, intersection);
             
             if (intersection) {
-                // Initialize expanding ripple
+                // Initialise expanding ripple
                 this.ripple.active = true;
                 this.ripple.center.copy(intersection);
                 this.ripple.radius = 0.0;
@@ -1424,7 +1424,7 @@ class AlchemicalEngine3D {
         this.container.addEventListener('mousemove', (e) => {
             this.lastUserInteractionTime = this.clock.getElapsedTime();
             
-            // Track normalized coordinates
+            // Track normalised coordinates
             const rect = this.renderer.domElement.getBoundingClientRect();
             this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
             this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -1535,7 +1535,7 @@ class AlchemicalEngine3D {
                 
                 surveyOverlay.classList.add('survey-overlay-hidden');
                 reflectionInput.value = '';
-                this.finalizeMeditationCleanup();
+                this.finaliseMeditationCleanup();
             });
         }
         
@@ -1543,7 +1543,7 @@ class AlchemicalEngine3D {
             surveySkipBtn.addEventListener('click', () => {
                 surveyOverlay.classList.add('survey-overlay-hidden');
                 reflectionInput.value = '';
-                this.finalizeMeditationCleanup();
+                this.finaliseMeditationCleanup();
             });
         }
     }
@@ -1560,7 +1560,7 @@ class AlchemicalEngine3D {
     setRatio(ratio) {
         this.ratio = ratio;
         
-        // Blend Core Material Color between Sol (Gold) and Quicksilver (Silver)
+        // Blend Core Material Colour between Sol (Gold) and Quicksilver (Silver)
         const solColor = new THREE.Color(0xffd700);
         const mercColor = new THREE.Color(0xc2cbd6);
         const finalColor = solColor.clone().lerp(mercColor, ratio);
@@ -1568,7 +1568,7 @@ class AlchemicalEngine3D {
         this.coreMesh.material.color.copy(finalColor);
         this.coreMesh.material.roughness = 0.05 + (ratio * 0.1);
         
-        // Blend core light color to match alloy mix
+        // Blend core light colour to match alloy mix
         const lightGold = new THREE.Color(0xffb700);
         const lightQuicksilver = new THREE.Color(0x7ac1eb);
         this.coreLight.color.copy(lightGold.clone().lerp(lightQuicksilver, ratio));
@@ -1580,7 +1580,7 @@ class AlchemicalEngine3D {
                 
                 const descEl = document.getElementById('state-description');
                 if (descEl) {
-                    descEl.textContent = "THE GRAND CONJUNCTION: Dial set to 62% Golden Ratio. Quicksilver crystallizes into the multi-faceted emerald-ruby Philosopher's Stone.";
+                    descEl.textContent = "THE GRAND CONJUNCTION: Dial set to 62% Golden Ratio. Quicksilver crystallises into the multi-faceted emerald-ruby Philosopher's Stone.";
                 }
                 
                 if (window.AlchemicalAudio) {
@@ -1611,10 +1611,10 @@ class AlchemicalEngine3D {
             descEl.textContent = "ZHENREN: Harmonic levitation, golden-ratio alignment, and tranquil, breathing ambient drones.";
             
             // Smoothly align rings to peaceful horizontal breathing orbits
-            this.stabilized = false;
+            this.stabilised = false;
             this.coreMesh.material.wireframe = false;
             
-            // Restore time-locked fog color
+            // Restore time-locked fog colour
             const fogColor = this.timeLockedColors ? this.timeLockedColors.fogColor : 0x07070a;
             this.scene.fog.color.setHex(fogColor);
             this.renderer.setClearColor(fogColor);
@@ -1690,7 +1690,7 @@ class AlchemicalEngine3D {
             setTimeout(() => {
                 this.solarFlareActive = false;
                 this.coreLight.intensity = 3;
-                this.setRatio(this.ratio); // Reset color
+                this.setRatio(this.ratio); // Reset colour
                 this.rings.forEach(r => {
                     r.mesh.material.emissiveIntensity = 0.4;
                 });
@@ -1701,7 +1701,7 @@ class AlchemicalEngine3D {
             this.lastGlyphTime = this.clock.getElapsedTime();
             
             // Anchor. Perfect levitation zero-G state, completely stable
-            this.stabilized = true;
+            this.stabilised = true;
             this.setGravity(0);
             document.getElementById('gravity-slider').value = 0;
             document.getElementById('gravity-val').textContent = '0.00 G';
@@ -1720,7 +1720,7 @@ class AlchemicalEngine3D {
             this.conjunctionMorph = 0.0;
             
             // Organic alignment, resets properties to equilibrium
-            this.stabilized = false;
+            this.stabilised = false;
             this.setGravity(0);
             document.getElementById('gravity-slider').value = 0;
             document.getElementById('gravity-val').textContent = '0.00 G';
@@ -1766,7 +1766,7 @@ class AlchemicalEngine3D {
             
             window.AlchemicalAudio.playChime('silver');
             
-            // Randomize ring orientations
+            // Randomise ring orientations
             this.rings.forEach(r => {
                 r.mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
             });
@@ -1894,7 +1894,7 @@ class AlchemicalEngine3D {
 
 
         // Spring physical drift following mouse hover is disabled.
-        // The core remains perfectly, hypnotically centered at (0, 0, 0).
+        // The core remains perfectly, hypnotically centred at (0, 0, 0).
         this.coreMesh.position.set(0, 0, 0);
         this.coreSpringVelocity.x = 0;
         this.coreSpringVelocity.y = 0;
@@ -2000,14 +2000,14 @@ class AlchemicalEngine3D {
             // Resize points material size for visual coronal flare amplification
             this.particles.material.size = THREE.MathUtils.lerp(0.05, 0.08, this.eclipseIntensity);
         } else {
-            // Restore default colors
+            // Restore default colours
             const fogColor = this.timeLockedColors ? this.timeLockedColors.fogColor : 0x07070a;
             this.scene.fog.color.setHex(this.state === 'zhenren' ? fogColor : 0x0c0418);
             this.renderer.setClearColor(this.state === 'zhenren' ? fogColor : 0x0c0418);
             this.scene.fog.density = 0.08;
             this.shaftLight.intensity = 2.8;
             this.spotLight.intensity = 0.0;
-            this.setRatio(this.ratio); // Reset color
+            this.setRatio(this.ratio); // Reset colour
             this.particles.material.size = 0.05;
         }
         
@@ -2107,7 +2107,7 @@ class AlchemicalEngine3D {
         for (let i = 0; i < positionAttribute.count; i++) {
             vertex.fromBufferAttribute(this.corePositions, i);
             
-            // Philosopher's stone octahedral crystallization projection
+            // Philosopher's stone octahedral crystallisation projection
             const sumAbs = Math.abs(vertex.x) + Math.abs(vertex.y) + Math.abs(vertex.z);
             const scale = 0.7 / (sumAbs || 0.001);
             const octaX = vertex.x * scale;
@@ -2191,8 +2191,8 @@ class AlchemicalEngine3D {
             }
             const oldZ = r.mesh.rotation.z;
             
-            if (this.stabilized) {
-                // Yesod stabilizing: pull rings slowly back to flat, neat alignments
+            if (this.stabilised) {
+                // Yesod stabilising: pull rings slowly back to flat, neat alignments
                 r.mesh.rotation.x = THREE.MathUtils.lerp(r.mesh.rotation.x, Math.PI / 2, 0.05);
                 r.mesh.rotation.y = THREE.MathUtils.lerp(r.mesh.rotation.y, 0, 0.05);
                 r.mesh.rotation.z += 0.005 * this.speed;
@@ -2234,7 +2234,7 @@ class AlchemicalEngine3D {
                         if (idx === 0) targetNote *= 0.5;
                         if (idx === 2) targetNote *= 1.5;
                         
-                        // Add a slight random detuning / humanized deviation
+                        // Add a slight random detuning / humanised deviation
                         targetNote *= (0.99 + Math.random() * 0.02);
                         
                         window.AlchemicalAudio.playChime(targetNote);
@@ -2252,11 +2252,11 @@ class AlchemicalEngine3D {
         const pColors = this.particles.geometry.attributes.color.array; // Keep color buffer aligned
         const v = this.particles.userData.velocities;
         
-        // Shift particle color based on state
+        // Shift particle colour based on state
         const pColorAttr = this.particles.geometry.attributes.color;
         const targetColor = new THREE.Color();
         
-        // Static color parameters defined outside loop to prevent Garbage Collection stutters
+        // Static colour parameters defined outside loop to prevent Garbage Collection stutters
         const cWhite = new THREE.Color(0xffffff);
         const cSolarOrange = new THREE.Color(0xff8c00);
         const cGold = new THREE.Color(0xffd700);
@@ -2350,7 +2350,7 @@ class AlchemicalEngine3D {
                 const diff = Math.abs(distToRipple - this.ripple.radius);
                 
                 if (diff < thickness) {
-                    // Deflect outward from expanding ripple center
+                    // Deflect outward from expanding ripple centre
                     const forceFactor = (1.0 - (diff / thickness)) * this.ripple.intensity * 0.12;
                     v[i * 3] += (dx / (distToRipple || 1.0)) * forceFactor;
                     v[i * 3 + 1] += (dy / (distToRipple || 1.0)) * forceFactor;
@@ -2421,7 +2421,7 @@ class AlchemicalEngine3D {
             pPositions[i * 3 + 1] = nextY;
             pPositions[i * 3 + 2] = nextZ;
             
-            // Blend colors smoothly inside particle attribute based on distance
+            // Blend colours smoothly inside particle attribute based on distance
             const t = Math.min(1.0, Math.max(0.0, (nextDistance - 0.3) / 3.8));
             
             if (this.solarFlareActive) {
@@ -2650,7 +2650,7 @@ gravSlider.addEventListener('input', (e) => {
     // Update WebGL gravity vector
     window.AlchemicalEngine.setGravity(val);
     
-    // Update Synthesizer fundamental pitches
+    // Update Synthesiser fundamental pitches
     window.AlchemicalAudio.setGravity(val);
 });
 
@@ -2956,7 +2956,7 @@ document.querySelectorAll('.drumming-pattern-btn').forEach(btn => {
     });
 });
 
-// Celestial Beams (Colored Lights) Toggle Binding
+// Celestial Beams (Coloured Lights) Toggle Binding
 const lightsToggle = document.getElementById('lights-toggle');
 if (lightsToggle) {
     lightsToggle.addEventListener('change', (e) => {
@@ -3116,7 +3116,7 @@ class GalleryInstallationManager {
             { author: "Adept #104", text: "An absolute stillness... Sinking into a deep golden void." },
             { author: "Visitor", text: "Like floating in warm oil while watching the stars orbit." },
             { author: "Participant", text: "Felt the chatter in my mind completely subside after 2 minutes." },
-            { author: "Seeker", text: "The chimes synchronized with my breathing. Unbelievably peaceful." },
+            { author: "Seeker", text: "The chimes synchronised with my breathing. Unbelievably peaceful." },
             { author: "Gallery Guest", text: "A rare moment of true weightlessness in the middle of a noisy day." }
         ];
 
@@ -3722,7 +3722,7 @@ class CuratorAdminManager {
     }
 }
 
-// Initialize Gallery Systems once DOM is fully loaded
+// Initialise Gallery Systems once DOM is fully loaded
 window.addEventListener('DOMContentLoaded', () => {
     window.GalleryInstallation = new GalleryInstallationManager();
     window.TabletWizard = new GalleryTabletWizardManager();

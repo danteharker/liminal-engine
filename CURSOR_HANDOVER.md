@@ -22,7 +22,7 @@
 alchemical-engine-v2/
 ├── index.html                   # Master HTML5 layout, UI modals, canvas & bottom controls
 ├── engine.js                    # 3D Graphics, interaction, kiosk & curator logic (~3,740 lines)
-├── audio.js                     # Generative Web Audio API synthesizer & sound engine (~875 lines)
+├── audio.js                     # Generative Web Audio API synthesiser & sound engine (~875 lines)
 ├── style.css                    # Luxury dark alchemical glassmorphic styling (~2,620 lines)
 ├── three.min.js                 # Local Three.js r128 bundle (603 KB) for 100% offline museum reliability
 ├── fonts/                       # Cinzel, Cinzel Decorative & Outfit (.woff2) + fonts.css — no Google Fonts CDN
@@ -44,7 +44,7 @@ alchemical-engine-v2/
 - **Quicksilver Fluid Dynamics**: Icosahedron geometry with real-time vertex displacement algorithms driven by trigonometric wave functions and harmonic speed factors.
 - **Stillness Entrainment System**:
   - `this.stillnessDepth` (0% to 100%) tracks visitor stillness.
-  - When stillness increases, `stillnessFactor` drops to 0, vertex displacement subsides to a glassy surface, `coreMesh.material.roughness` drops to `0.005`, and the material color smoothly lerps to pure reflective liquid gold (`#ffd700`).
+  - When stillness increases, `stillnessFactor` drops to 0, vertex displacement subsides to a glassy surface, `coreMesh.material.roughness` drops to `0.005`, and the material colour smoothly lerps to pure reflective liquid gold (`#ffd700`).
 - **Celestial Energy Bridges & Stardust Particles**: Bezier curves with moving stardust particles converging into the core.
 - **Meditation Engine**: Methods `startMeditationTimer(durationSeconds)`, `startMeditation()`, `completeMeditation(success)`, and `endMeditationSession(success)`.
 
@@ -53,7 +53,7 @@ alchemical-engine-v2/
 - **Stereo Binaural Drone**: Left and right stereo panners delivering Solfeggio fundamental tones (64.22 Hz C2 for 432 Hz) with a +10 Hz difference for alpha/theta entrainment.
 - **LFO Filter Sweep**: Lowpass biquad filter modulated by a slow breathing sine LFO (0.1 Hz).
 - **Generative Chord Pad Cloud**: Lush multi-oscillator ambient background chords that morph smoothly.
-- **Journey Drumming**: Synthesized shamanic frame drum hits, heartbeats, and trance rhythms.
+- **Journey Drumming**: Synthesised shamanic frame drum hits, heartbeats, and trance rhythms.
 - **Master Volume & Hardware Mute**: `setMasterVolume(val)` and `toggleHardwareMute()` with anti-pop exponential gain ramping.
 
 ### C. `GalleryInstallationManager` (in `engine.js`)
@@ -87,7 +87,7 @@ Before this handover, the following major fixes were implemented and verified:
 2. **Fixed Meditation Completion Hook**: Overrode `completeMeditation(success)` so that when the countdown hits zero, `TabletWizard.onImmersionComplete()` is reliably invoked.
 3. **Restored Missing Attract Mode Elements**: Restored `#attract-overlay`, `.attract-card`, `.attract-glyph`, and `#attract-wake-btn` in `index.html`.
 4. **Master Limiter Installed**: Routed `masterGain` through `DynamicsCompressorNode` in `audio.js` to safeguard gallery sound systems against distortion.
-5. **Stillness Depth Transmutation**: Explicitly wired `stillnessDepth` to `coreMesh.material.roughness` and golden color interpolation in `engine.js`.
+5. **Stillness Depth Transmutation**: Explicitly wired `stillnessDepth` to `coreMesh.material.roughness` and golden colour interpolation in `engine.js`.
 6. **100% Offline Readiness**: Bundled local `three.min.js` (r128) with zero CDN dependencies for offline exhibition.
 7. **100% DOM ID Integrity**: Verified that all `getElementById` calls in JavaScript exist in `index.html`.
 8. **Local Typefaces (Cursor, Sep 2026)**: Replaced the Google Fonts CDN links with bundled `.woff2` files in `fonts/` and `fonts/fonts.css`. Previously, an offline gallery would have fallen back to system serif fonts for the entire UI and the astrolabe ring engravings. Verified in headless Chrome: all three families load from disk, zero external requests.

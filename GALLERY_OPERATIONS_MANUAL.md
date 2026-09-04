@@ -28,7 +28,7 @@ A daily step-by-step operating procedure for gallery docents, invigilators, and 
   2. The **Calibration Wizard** appears, inviting the visitor to pick an atmospheric theme (Golden Stillness, Violet Drift, Ether Void), Solfeggio sound tuning (432Hz, 528Hz, 741Hz), and duration (1 to 3 minutes).
   3. Clicking *"BEGIN IMMERSION"* clears the screen for pure contemplative focus.
   4. At the conclusion of the session, a gentle 3-chime triad rings, and the reflection screen appears.
-  5. The visitor can select a feeling rating (*Calmer, Re-Centered, Inspired, Rested*) and optionally type a note into the collective memory wall.
+  5. The visitor can select a feeling rating (*Calmer, Re-Centred, Inspired, Rested*) and optionally type a note into the collective memory wall.
   6. Submitting the note immediately adds it to the scrolling memory ticker.
   7. If untouched for 45 seconds, the installation automatically returns to the start screen.
 
