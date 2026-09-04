@@ -325,16 +325,30 @@ class LiminalEngine3D {
         });
         this.envCamera = new THREE.CubeCamera(0.1, 10, this.envRT);
 
-        const shader = THREE.ShaderLib.equirect;
+        // Self-contained equirect-to-cube shader. (ShaderLib.equirect relies on
+        // mapTexelToLinear, which this build only defines for materials with a map,
+        // so it fails to compile here and the cube target stays black.)
+        // The canvas is sRGB and the target is flagged sRGB, so texels pass straight through.
         const mat = new THREE.ShaderMaterial({
-            uniforms: THREE.UniformsUtils.clone(shader.uniforms),
-            vertexShader: shader.vertexShader,
-            fragmentShader: shader.fragmentShader,
+            uniforms: { tEquirect: { value: this.envTexture } },
+            vertexShader: `
+                varying vec3 vWorldDirection;
+                void main() {
+                    vWorldDirection = (modelMatrix * vec4(position, 1.0)).xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`,
+            fragmentShader: `
+                uniform sampler2D tEquirect;
+                varying vec3 vWorldDirection;
+                void main() {
+                    vec3 d = normalize(vWorldDirection);
+                    vec2 uv = vec2(atan(d.z, d.x) * 0.15915494309 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830988618 + 0.5);
+                    gl_FragColor = texture2D(tEquirect, uv);
+                }`,
             side: THREE.BackSide,
             depthTest: false,
             depthWrite: false
         });
-        mat.uniforms.tEquirect.value = this.envTexture;
         this.envScene = new THREE.Scene();
         this.envScene.add(new THREE.Mesh(new THREE.BoxGeometry(5, 5, 5), mat));
 
@@ -347,22 +361,40 @@ class LiminalEngine3D {
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
 
-        // A lit studio: warm ceiling, mid-grey walls, dark floor. Metal needs light to read as metal.
+        // A lit gallery: warm ceiling, mid-grey walls, dark floor. A polished metal ball
+        // only reads as metal if the room it reflects is mostly mid-tone, not black.
         const g = ctx.createLinearGradient(0, 0, 0, h);
-        g.addColorStop(0.00, '#7c6c55');
-        g.addColorStop(0.22, '#3b342d');
-        g.addColorStop(0.46, '#25211d');
-        g.addColorStop(0.54, '#332d26');
-        g.addColorStop(0.68, '#100e0c');
-        g.addColorStop(1.00, '#050504');
+        g.addColorStop(0.00, '#a08d72');
+        g.addColorStop(0.18, '#6a6058');
+        g.addColorStop(0.40, '#5a534c');
+        g.addColorStop(0.62, '#4a443e');
+        g.addColorStop(0.66, '#1e1b18');
+        g.addColorStop(0.85, '#0e0d0b');
+        g.addColorStop(1.00, '#060605');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, w, h);
 
-        // Broad soft light above and in front of the visitor (u = 0.75)
-        let rg = ctx.createRadialGradient(w * 0.75, h * 0.16, 10, w * 0.75, h * 0.16, 190);
-        rg.addColorStop(0, 'rgba(255,244,220,0.95)');
-        rg.addColorStop(0.35, 'rgba(255,236,200,0.45)');
-        rg.addColorStop(1, 'rgba(255,230,190,0)');
+        // Ceiling light strip running the length of the room: a clean specular line
+        ctx.fillStyle = 'rgba(255,246,226,0.85)';
+        ctx.fillRect(0, h * 0.06, w, h * 0.035);
+        let rg = ctx.createLinearGradient(0, h * 0.02, 0, h * 0.2);
+        rg.addColorStop(0, 'rgba(255,240,214,0.5)');
+        rg.addColorStop(1, 'rgba(255,240,214,0)');
+        ctx.fillStyle = rg;
+        ctx.fillRect(0, 0, w, h * 0.2);
+
+        // A wide lit panel in front of the visitor (u = 0.75). This is what the centre
+        // of the sphere reflects; the live camera frame is later screened onto it.
+        const px = w * 0.75 - w * 0.19, py = h * 0.30, pw = w * 0.38, ph = h * 0.30;
+        ctx.fillStyle = 'rgba(232,220,200,0.55)';
+        ctx.fillRect(px, py, pw, ph);
+        ctx.fillStyle = 'rgba(28,25,22,0.85)';
+        ctx.fillRect(px + pw / 3 - 1.5, py, 3, ph);
+        ctx.fillRect(px + (2 * pw) / 3 - 1.5, py, 3, ph);
+        ctx.fillRect(px, py + ph / 2 - 1.5, pw, 3);
+        rg = ctx.createRadialGradient(w * 0.75, h * 0.45, pw * 0.3, w * 0.75, h * 0.45, pw * 1.1);
+        rg.addColorStop(0, 'rgba(255,238,206,0.30)');
+        rg.addColorStop(1, 'rgba(255,238,206,0)');
         ctx.fillStyle = rg;
         ctx.fillRect(0, 0, w, h);
 
@@ -380,24 +412,12 @@ class LiminalEngine3D {
         ctx.fillStyle = rg;
         ctx.fillRect(0, 0, w, h);
 
-        // Two windows flanking the visitor (u = 0.62 and 0.88): these are what the front
-        // of the sphere reflects, so the mirror has bright shapes in it even with no camera.
-        [0.62, 0.88].forEach(u => {
-            const x = w * u - 22, y = h * 0.26, ww2 = 44, wh2 = 66;
-            ctx.fillStyle = 'rgba(255,240,212,0.9)';
-            ctx.fillRect(x, y, ww2, wh2);
-            ctx.fillStyle = 'rgba(20,18,15,0.9)';
-            ctx.fillRect(x + ww2 / 2 - 1.5, y, 3, wh2);
-            ctx.fillRect(x, y + wh2 / 2 - 1.5, ww2, 3);
-            const glow = ctx.createRadialGradient(w * u, y + wh2 / 2, 20, w * u, y + wh2 / 2, 90);
-            glow.addColorStop(0, 'rgba(255,236,200,0.28)');
-            glow.addColorStop(1, 'rgba(255,236,200,0)');
-            ctx.fillStyle = glow;
-            ctx.fillRect(0, 0, w, h);
-        });
+        // A doorway of light to the visitor's left (u = 0.5): a tall bright slot with a hard edge
+        ctx.fillStyle = 'rgba(255,238,206,0.7)';
+        ctx.fillRect(w * 0.5 - 9, h * 0.22, 18, h * 0.44);
 
         // Floor edge: a crisp dark line where wall meets floor
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(0, h * 0.66, w, 3);
 
         // Floor bounce, warm and faint
@@ -726,14 +746,14 @@ class LiminalEngine3D {
         stageLerpColor([0x101012, 0xc4c8cf, 0xdcb85c, 0xf7c744], p, m.color);
         m.roughness = stageLerp([0.55, 0.22, 0.10, 0.04], p);
         m.metalness = stageLerp([1.0, 1.0, 0.97, 0.93], p);
-        m.envMapIntensity = stageLerp([0.5, 1.2, 1.8, 2.4], p);
+        m.envMapIntensity = stageLerp([0.4, 1.0, 1.3, 1.6], p);
 
         // Rings warm from iron to gold and stop glowing
         this.rings.forEach(r => {
             const rm = r.mesh.material;
             stageLerpColor([0x5a5148, 0x8d877c, 0xb59a5a, 0xd4b05a], p, rm.color);
             rm.roughness = stageLerp([0.34, 0.26, 0.18, 0.12], p);
-            rm.envMapIntensity = stageLerp([0.8, 1.0, 1.2, 1.4], p);
+            rm.envMapIntensity = stageLerp([0.6, 0.8, 0.95, 1.1], p);
             rm.emissiveIntensity = stageLerp([0.45, 0.3, 0.18, 0.08], p);
         });
 

@@ -123,6 +123,7 @@ body:not(.kiosk-locked) #canvas-container { cursor: default; }
 
 /* Intro */
 #intro { justify-content: flex-end; padding-bottom: 7vh; }
+#reflect { justify-content: flex-end; padding-bottom: 6vh; }
 .intro-text {
     max-width: 44ch;
     padding: 0 28px;
