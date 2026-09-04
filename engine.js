@@ -1191,6 +1191,8 @@ class LiminalEngine3D {
         const near = this._tmpColor, far = this._tmpColor2;
         stageLerpColor([0x5a4e3e, 0x9fa3a8, 0xc9a85e, 0xe0be6e], p, near);
         stageLerpColor([0x14110e, 0x2c2f33, 0x3a2c12, 0x4a3a18], p, far);
+        const A = window.AlchemicalAudio;
+        const beat = A ? A.beatPulse : 0;
         this.particles.material.opacity = lerp(0.32, 0.22, p) + beat * 0.12;
         this.particles.material.size = 0.026 + beat * 0.02;
         const turbulence = lerp(0.004, 0.0006, p) + motion * 0.004 + beat * 0.003;
