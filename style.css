@@ -207,7 +207,40 @@ body:not(.kiosk-locked) #canvas-container { cursor: default; }
 .return-sub { margin: 10px 0 0; font-size: 17px; color: var(--ink-dim); }
 .question-sub { margin: -12px 0 18px; font-size: 15px; color: var(--ink-dim); }
 
-/* HUD nudge */
+/* Guide voice during the work */
+.voice {
+    position: absolute;
+    left: 50%;
+    top: 14vh;
+    transform: translateX(-50%);
+    width: min(42ch, calc(100vw - 48px));
+    margin: 0;
+    text-align: center;
+    font-style: italic;
+    font-size: clamp(22px, 2.6vw, 34px);
+    line-height: 1.35;
+    color: var(--ink);
+    opacity: 0;
+    transition: opacity 0.9s var(--ease);
+    pointer-events: none;
+    text-shadow: 0 0 24px rgba(5, 5, 6, 0.9);
+}
+.voice.is-visible { opacity: 0.95; }
+.voice.is-command {
+    font-style: normal;
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.18em;
+    font-size: clamp(28px, 3.4vw, 44px);
+}
+
+body.fan-mode #mark,
+body.fan-mode .note,
+body.fan-mode .progress-track,
+body.fan-mode .quiet-btn { opacity: 0 !important; }
+body.fan-mode .stage { opacity: 0 !important; }
+body.fan-mode .attract-block .attract-title,
+body.fan-mode .attract-block .attract-sub { text-shadow: none; }
+
 .hint {
     position: absolute;
     left: 0; right: 0;

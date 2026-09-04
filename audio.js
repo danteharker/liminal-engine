@@ -10,10 +10,13 @@
 
    setOpus(progress) is the one control the installation drives during a
    session. progress runs 0 -> 1 as the visitor becomes still:
-     0.00 - 0.25  Caput Corvi     dark, closed filter, bellows at 84 bpm
-     0.25 - 0.50  Albedo      filter opens, bellows slow
-     0.50 - 0.75  Citrinitas  pad warms, bellows almost gone
-     0.75 - 1.00  Rubedo      open, quiet, still
+     0.00 - 0.25  Caput Corvi  dark, closed filter, drum at shamanic pace
+     0.25 - 0.50  Albedo       filter opens, drum slows
+     0.50 - 0.75  Citrinitas   pad warms, drum near a resting heart
+     0.75 - 1.00  Rubedo       open, quiet, drum silent
+
+   Beat sync: every frame-drum hit sets beatPulse = 1 and lastBeatAt.
+   The 3D engine reads these to pulse the rings and sphere on the beat.
    ========================================================================== */
 
 class AlchemicalAudioEngine {
@@ -58,9 +61,14 @@ class AlchemicalAudioEngine {
         this.bellowsPattern = 'pulse'; // pulse | heartbeat | roll
         this.bellowsTimer = null;
         this.bellowsStep = 0;
-        this.bellowsTempo = 84;
+        this.bellowsTempo = 240; // shamanic: four hits a second at the start
         this.bellowsGainValue = 1.0; // scaled by opus
         this.nextNoteTime = 0;
+
+        // Visual sync: the engine reads these every frame
+        this.beatPulse = 0;
+        this.lastBeatAt = 0;
+        this.beatCount = 0;
 
         this.heartbeatTimer = null;
         this.opus = 0.0;
@@ -241,9 +249,9 @@ class AlchemicalAudioEngine {
         // Pad grows quieter and purer
         this.padGainMaster.gain.setTargetAtTime(0.05 - p * 0.03, now, 0.8);
 
-        // Bellows: slow from 84 to 48 bpm and fade out in the last quarter
-        this.bellowsTempo = 84 - p * 36;
-        this.bellowsGainValue = p < 0.75 ? 1.0 : Math.max(0, 1.0 - (p - 0.75) / 0.25);
+        // Bellows: shamanic 240 bpm (4 hits/s) -> resting heart ~60, silent at gold
+        this.bellowsTempo = 240 - p * 180;
+        this.bellowsGainValue = p < 0.82 ? 1.0 : Math.max(0, 1.0 - (p - 0.82) / 0.18);
 
         // Binaural spread narrows towards unison at rubedo (8 Hz -> 4 Hz)
         const spread = 8 - p * 4;
@@ -259,9 +267,14 @@ class AlchemicalAudioEngine {
             this.filter.frequency.setTargetAtTime(220, now, 1.5);
             this.filter.Q.setTargetAtTime(3, now, 1.5);
             this.padGainMaster.gain.setTargetAtTime(0.05, now, 1.5);
-            this.bellowsTempo = 84;
+            this.bellowsTempo = 240;
             this.bellowsGainValue = 1.0;
         }
+    }
+
+    // Soft decay of the visual beat pulse (called from the render loop)
+    tickBeat(dt) {
+        if (this.beatPulse > 0) this.beatPulse = Math.max(0, this.beatPulse - dt * 6);
     }
 
     /* ---------------- pad progression ---------------- */
@@ -455,6 +468,13 @@ class AlchemicalAudioEngine {
     playDrumHit(time, velocity = 1.0) {
         if (!this.ctx || !this.isActive) return;
         const now = time || this.ctx.currentTime;
+        // Fire the visual beat slightly before the sound reaches the ear (lookahead)
+        const delayMs = Math.max(0, (now - this.ctx.currentTime) * 1000);
+        setTimeout(() => {
+            this.beatPulse = Math.min(1, 0.55 + velocity * 0.45);
+            this.lastBeatAt = performance.now();
+            this.beatCount++;
+        }, delayMs);
         const out = this.ctx.createGain();
         out.connect(this.masterGain);
         const lp = this.ctx.createBiquadFilter();

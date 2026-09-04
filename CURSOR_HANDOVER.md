@@ -98,5 +98,6 @@ Time-of-day and the like are fine ideas but they made the piece's identity drift
 ## 5. Open items
 
 - Real-webcam pass: confirm the mirror orientation reads as a mirror (the frame is drawn un-flipped at u = 0.75; if it feels wrong when you raise your right hand, set `ctx.scale(-1, 1)` before `drawImage` in `updateEnvironment`).
+- Narrative build (in progress / first playable): beat-synced drum at 240→60 bpm, shatter/gather, voice lines, kaleidoscope rings, fan mode. Tune intensity with Dante after a live sitting.
 - If a gallery machine struggles, set render scale to 1.0 in the curator panel and consider dropping `IcosahedronGeometry` detail from 14 to 10.
 - Custom domain for Pages (`liminal-engine.art`) when there is a reason to.

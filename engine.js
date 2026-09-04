@@ -40,6 +40,26 @@ function durationWords(seconds) {
     return map[seconds] || `${Math.round(seconds)} seconds`;
 }
 
+// The guide voice. Timed from the start of the work. Lines with `command` are
+// large small-caps instructions. Lines with `needStill` wait until the visitor is still.
+const VOICE = [
+    { at: 0.4,  text: 'Move.', command: true, hold: 2.2 },
+    { at: 3.2,  text: 'Now stop.', command: true, hold: 2.4 },
+    { at: 6.2,  text: 'This is quicksilver. The alchemists called it the mind.', hold: 3.6 },
+    { at: 10.0, text: 'Tonight you are going to fix it.', hold: 2.8 },
+    { at: 13.5, text: 'Everything you carried in here is in the sphere.', hold: 3.2 },
+    { at: 17.5, text: 'The message you did not answer. The thing you said.', hold: 3.4 },
+    { at: 21.5, text: 'Let it burn. Do not move.', hold: 3.0, needStill: true },
+    { at: 28.0, text: 'Dissolve.', command: true, hold: 2.2, needStill: true },
+    { at: 32.0, text: 'You do not have to hold it together.', hold: 3.2 },
+    { at: 37.0, text: 'Follow the drum.', hold: 2.8 },
+    { at: 48.0, text: 'You are the only thing in this room that is still.', hold: 3.6, needStill: true },
+    { at: 54.0, text: 'Everything else is moving around you.', hold: 3.0 },
+    { at: 60.0, text: 'Go inward.', hold: 2.6 },
+    { at: 70.0, text: 'Solve et coagula.', hold: 3.0, needStill: true },
+    { at: 75.0, text: 'This is what is left when you stop.', hold: 4.0 }
+];
+
 function stageFor(p) {
     let s = STAGES[0];
     for (const st of STAGES) if (p >= st.from) s = st;
@@ -258,12 +278,31 @@ class LiminalEngine3D {
         this.paletteRoomTarget = this.paletteRoom.clone();
         this.paletteGlowTarget = this.paletteGlow.clone();
         this._roomColor = new THREE.Color();
+
+        // Solve et coagula: 0 = gathered sphere, 1 = shattered into droplets
+        this.shatter = 0;
+        this.shatterTarget = 0;
+        // Mandala opening through albedo/citrinitas (0..1)
+        this.kaleido = 0;
+        this.fanMode = false;
+        this.beatScale = 1;
     }
 
     setTone(key) {
         const t = toneFor(key);
         this.paletteRoomTarget.copy(linear(t.room));
         this.paletteGlowTarget.copy(linear(t.glow));
+    }
+
+    setFanMode(on) {
+        this.fanMode = !!on;
+        document.body.classList.toggle('fan-mode', this.fanMode);
+        if (this.wall) this.wall.visible = !this.fanMode;
+        if (this.halo) this.halo.visible = !this.fanMode;
+        if (this.fanMode) {
+            this.renderer.setClearColor(0x000000);
+            if (this.scene.fog) this.scene.fog.density = 0.02;
+        }
     }
 
     init() {
@@ -294,9 +333,11 @@ class LiminalEngine3D {
         this.createCore();
         this.createRings();
         this.createParticles();
+        this.createDroplets();
         this.createTrails();
         this.createWall();
         this.createHalo();
+        this.createKaleidoRings();
         this.setupEvents();
 
         if (document.fonts && document.fonts.ready) {
@@ -686,6 +727,66 @@ class LiminalEngine3D {
         this.group.add(this.particles);
     }
 
+    // Quicksilver droplets for shatter / dissolve / coagulate
+    createDroplets() {
+        const count = 420;
+        const geom = new THREE.BufferGeometry();
+        const pos = new Float32Array(count * 3);
+        const col = new Float32Array(count * 3);
+        const base = new Float32Array(count * 3);
+        const vel = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(Math.random() * 2 - 1);
+            const r = 0.55 + Math.random() * 0.25;
+            base[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            base[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+            base[i * 3 + 2] = r * Math.cos(phi);
+            pos[i * 3] = base[i * 3];
+            pos[i * 3 + 1] = base[i * 3 + 1];
+            pos[i * 3 + 2] = base[i * 3 + 2];
+            vel[i * 3] = base[i * 3] * (1.2 + Math.random());
+            vel[i * 3 + 1] = base[i * 3 + 1] * (1.2 + Math.random());
+            vel[i * 3 + 2] = base[i * 3 + 2] * (1.2 + Math.random());
+            col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = 0.7;
+        }
+        geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geom.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        const mat = new THREE.PointsMaterial({
+            size: 0.055, vertexColors: true, transparent: true, opacity: 0,
+            blending: THREE.AdditiveBlending, depthWrite: false, map: this.softDot()
+        });
+        this.droplets = new THREE.Points(geom, mat);
+        this.droplets.userData = { vel, base, count, pos };
+        this.group.add(this.droplets);
+    }
+
+    // Extra ring copies that bloom into a mandala through Albedo / Citrinitas
+    createKaleidoRings() {
+        this.kaleidoRings = [];
+        const offsets = [
+            { y: Math.PI / 3, z: Math.PI / 5 },
+            { y: -Math.PI / 3, z: -Math.PI / 4 },
+            { y: Math.PI / 2.2, z: Math.PI / 7 },
+            { x: Math.PI / 5, y: Math.PI / 6 },
+            { x: -Math.PI / 4, z: Math.PI / 3 },
+            { y: Math.PI / 1.7, z: -Math.PI / 5 }
+        ];
+        offsets.forEach((off, i) => {
+            const src = this.rings[i % 3].mesh;
+            const mesh = src.clone();
+            mesh.material = src.material.clone();
+            mesh.material.transparent = true;
+            mesh.material.opacity = 0;
+            mesh.material.depthWrite = false;
+            if (off.x) mesh.rotation.x += off.x;
+            if (off.y) mesh.rotation.y += off.y;
+            if (off.z) mesh.rotation.z += off.z;
+            this.group.add(mesh);
+            this.kaleidoRings.push({ mesh, off, phase: i * 0.7 });
+        });
+    }
+
     createTrails() {
         const count = 900;
         const geom = new THREE.BufferGeometry();
@@ -787,9 +888,28 @@ class LiminalEngine3D {
 
     updateOpus(dt) {
         const s = this.sensor.stillness;
+        const motion = this.sensor.motion;
+
+        // Shatter target: move and the metal dissolves; stop and it gathers
+        if (motion > 0.35) this.shatterTarget = Math.min(1, this.shatterTarget + dt * 2.4);
+        else if (s > 0.55) this.shatterTarget = Math.max(0, this.shatterTarget - dt * 1.1);
+        else this.shatterTarget = Math.max(0, this.shatterTarget - dt * 0.35);
+        this.shatter = lerp(this.shatter, this.shatterTarget, clamp01(dt * 4));
+
+        // Mandala opens in albedo/citrinitas, folds back at rubedo
+        const kaleidoTarget = p => {
+            if (p < 0.25) return 0;
+            if (p < 0.55) return (p - 0.25) / 0.3;
+            if (p < 0.78) return 1;
+            return Math.max(0, 1 - (p - 0.78) / 0.22);
+        };
+        this.kaleido = lerp(this.kaleido, kaleidoTarget(this.opus), clamp01(dt * 1.2));
+
         let rate;
-        if (s > 0.6) rate = ((s - 0.6) / 0.4) / this.riseSeconds;
-        else rate = -((0.6 - s) / 0.6) / this.fallSeconds;
+        if (s > 0.6 && this.shatter < 0.35) rate = ((s - 0.6) / 0.4) / this.riseSeconds;
+        else rate = -((0.6 - Math.min(s, 1 - this.shatter * 0.5)) / 0.6) / this.fallSeconds;
+        // Caput Corvi: fidgeting holds you in the dark
+        if (this.inSession && this.opus < 0.28 && motion > 0.4) rate = Math.min(rate, -0.04);
         this.opus = clamp01(this.opus + rate * dt);
         if (!this.inSession) this.opus = Math.min(this.opus, this.opusCap);
     }
@@ -825,15 +945,24 @@ class LiminalEngine3D {
 
         const roomLevel = stageLerp([0.55, 0.8, 1.0, 1.15], p);
         this._roomColor.copy(this.paletteRoom).multiplyScalar(roomLevel);
-        this.wall.material.color.copy(this._roomColor);
-        this.scene.fog.color.copy(this._roomColor).multiplyScalar(0.6);
-        this.renderer.setClearColor(this.scene.fog.color);
-        this.ambient.color.copy(this.paletteRoom).multiplyScalar(0.9);
+        if (this.fanMode) {
+            this.renderer.setClearColor(0x000000);
+            this.scene.fog.color.setHex(0x000000);
+            this.scene.fog.density = lerp(0.04, 0.015, p);
+            this.ambient.color.copy(this.paletteGlow).multiplyScalar(0.35);
+        } else {
+            this.wall.material.color.copy(this._roomColor);
+            this.scene.fog.color.copy(this._roomColor).multiplyScalar(0.6);
+            this.renderer.setClearColor(this.scene.fog.color);
+            this.ambient.color.copy(this.paletteRoom).multiplyScalar(0.9);
+            this.halo.material.color.copy(this.paletteGlow);
+            this.halo.material.opacity = stageLerp([0.22, 0.32, 0.40, 0.48], p);
+            const hs = 1 + 0.04 * Math.sin(this.time * 0.6);
+            this.halo.scale.set(hs, hs, 1);
+        }
 
-        this.halo.material.color.copy(this.paletteGlow);
-        this.halo.material.opacity = stageLerp([0.22, 0.32, 0.40, 0.48], p);
-        const s = 1 + 0.04 * Math.sin(this.time * 0.6);
-        this.halo.scale.set(s, s, 1);
+        // Furnace takes the tone's glow as well as the stage colour
+        this.furnace.color.lerp(this.paletteGlow, 0.25);
     }
 
     /* ---------------- quicksilver surface ---------------- */
@@ -900,6 +1029,11 @@ class LiminalEngine3D {
         this.updateOpus(dt);
         const p = this.opus;
         const motion = this.sensor.motion;
+        const shatter = this.shatter;
+
+        const A = window.AlchemicalAudio;
+        if (A) A.tickBeat(dt);
+        const beat = A ? A.beatPulse : 0;
 
         this.applyStageVisuals(p, dt);
 
@@ -907,8 +1041,9 @@ class LiminalEngine3D {
         this.envFrame++;
         if (this.envFrame % 2 === 0 || this.envDirty) this.updateEnvironment();
 
-        // Camera eases in during a session
-        this.camera.position.z = lerp(this.camera.position.z, this.cameraTargetZ, dt * 0.8);
+        // Camera eases in during a session; citrinitas pulls slightly closer
+        const zoom = this.cameraTargetZ - (p > 0.5 && p < 0.85 ? (p - 0.5) * 0.6 : 0);
+        this.camera.position.z = lerp(this.camera.position.z, zoom, dt * 0.8);
         this.camera.lookAt(0, 0, 0);
 
         // Ripple physics
@@ -918,37 +1053,41 @@ class LiminalEngine3D {
             if (this.ripple.radius >= this.ripple.maxRadius) this.ripple.active = false;
         }
 
-        // 1. Quicksilver surface. Agitation falls with the opus and rises with motion.
-        this.displaceCore(t, p, motion);
+        // 1. Quicksilver surface. Agitation + shatter
+        this.displaceCore(t, p, Math.max(motion, shatter * 0.8));
 
-        // Heartbeat scale pulse gives way to slow breathing
+        // Beat pulse on the sphere, stronger early when the drum is fast
+        const beatAmp = lerp(0.08, 0.02, p) * beat;
         const heart = t * Math.PI * 2 * 1.0;
-        const pulse = 1 + Math.max(0, Math.sin(heart)) * 0.035 + Math.max(0, Math.sin(heart + Math.PI * 0.3)) * 0.015;
-        const breath = 1 + Math.sin(t * 0.785) * 0.05;
-        const s = lerp(pulse, breath, p);
+        const pulse = 1 + Math.max(0, Math.sin(heart)) * 0.02 + beatAmp;
+        const breath = 1 + Math.sin(t * 0.785) * 0.04;
+        const gather = 1 - shatter * 0.82;
+        const s = lerp(pulse, breath, p) * gather;
         this.core.scale.setScalar(s);
+        this.core.material.opacity = 1;
+        this.core.visible = shatter < 0.92;
         this.core.rotation.y += dt * 0.25 * lerp(1, 0.4, p);
         this.core.rotation.x += dt * 0.08 * lerp(1, 0.4, p);
         this.group.position.y = Math.sin(t * 0.8) * 0.05;
 
-        // 2. Rings: Lissajous precession, slowing as the work completes
-        const ringSpeed = lerp(1.0, 0.45, p);
+        // 2. Rings: Lissajous precession + beat kick + kaleidoscope bloom
+        const ringSpeed = lerp(1.15, 0.35, p);
         this.rings.forEach((r, i) => {
             const ts = t * 0.4 * ringSpeed;
             r.mesh.rotation.x = Math.sin(ts * r.freqX + r.phase) * 0.5 + Math.PI / 2;
             r.mesh.rotation.y = Math.cos(ts * r.freqY + r.phase) * 0.5;
             r.mesh.rotation.z += dt * 0.3 * ringSpeed;
             r.mesh.position.z = Math.sin(t * 0.5 + i * Math.PI) * 0.15;
+            const kick = 1 + beat * lerp(0.12, 0.03, p);
+            r.mesh.scale.setScalar(kick);
 
-            // Chime once per quarter turn, on a harmonic of the active tuning
             const dz = Math.abs(r.mesh.rotation.z - r.prevZ);
             r.prevZ = r.mesh.rotation.z;
             r.accum += dz;
             const q = Math.floor(r.accum / (Math.PI / 2));
             if (q > r.lastChime) {
                 r.lastChime = q;
-                const A = window.AlchemicalAudio;
-                if (A && A.isActive && Math.random() < lerp(0.9, 0.35, p)) {
+                if (A && A.isActive && Math.random() < lerp(0.9, 0.25, p) && p < 0.85) {
                     const base = A.tunings[A.activeTuning].chime;
                     const f = base * [0.5, 1.0, 1.5][i] * (0.995 + Math.random() * 0.01);
                     A.playChime(f);
@@ -956,11 +1095,76 @@ class LiminalEngine3D {
             }
         });
 
-        // 3. Particles: ash -> silver -> gold; fewer and slower as the work completes
-        this.updateParticles(dt, t, p, motion);
+        // Mandala copies bloom with kaleido, spin slower, pull inward in citrinitas
+        const pull = p > 0.5 ? (p - 0.5) * 0.35 : 0;
+        if (this.kaleidoRings) {
+            this.kaleidoRings.forEach((k, i) => {
+                const src = this.rings[i % 3].mesh;
+                k.mesh.rotation.copy(src.rotation);
+                k.mesh.rotation.x += k.off.x || 0;
+                k.mesh.rotation.y += (k.off.y || 0) + t * 0.15 * (1 - p);
+                k.mesh.rotation.z += (k.off.z || 0) + t * 0.08;
+                const op = this.kaleido * (0.35 + 0.1 * Math.sin(t + k.phase));
+                k.mesh.material.opacity = op;
+                k.mesh.visible = op > 0.02;
+                const sc = (1 - pull * 0.4) * (1 + beat * 0.06);
+                k.mesh.scale.setScalar(sc);
+            });
+        }
+
+        // 3. Droplets: shatter outward, dissolve into orbit at albedo, coagulate at rubedo
+        this.updateDroplets(dt, t, p, shatter, beat);
+
+        // 4. Particles: ash -> silver -> gold; burst on the beat
+        this.updateParticles(dt, t, p, Math.max(motion, beat * 0.5));
         this.updateTrails(dt, t, p);
 
         this.renderer.render(this.scene, this.camera);
+    }
+
+    updateDroplets(dt, t, p, shatter, beat) {
+        if (!this.droplets) return;
+        const { vel, base, count } = this.droplets.userData;
+        const pos = this.droplets.geometry.attributes.position.array;
+        const col = this.droplets.geometry.attributes.color;
+        const near = this._tmpColor, far = this._tmpColor2;
+        stageLerpColor([0x8a8884, 0xd0d4da, 0xe0c070, 0xf0d070], p, near);
+        stageLerpColor([0x2a2824, 0x6a7078, 0x8a6a30, 0xa08030], p, far);
+
+        // Dissolve (albedo) adds orbital droplets even when gathered
+        const dissolve = clamp01((p - 0.22) / 0.28) * (1 - clamp01((p - 0.72) / 0.2));
+        const amount = Math.max(shatter, dissolve * 0.85);
+        this.droplets.material.opacity = amount * 0.85;
+        this.droplets.material.size = 0.04 + shatter * 0.04 + beat * 0.02;
+
+        for (let i = 0; i < count; i++) {
+            const bx = base[i * 3], by = base[i * 3 + 1], bz = base[i * 3 + 2];
+            const orbitR = 1 + dissolve * (1.5 + 0.5 * Math.sin(t * 0.7 + i * 0.2));
+            const ang = t * (0.35 + (i % 7) * 0.025) * (1 - p * 0.4);
+            const ox = bx * Math.cos(ang) - bz * Math.sin(ang);
+            const oz = bx * Math.sin(ang) + bz * Math.cos(ang);
+            let x = ox * orbitR;
+            let y = by * orbitR;
+            let z = oz * orbitR;
+            // Shatter: fly outward along the radial
+            const fly = 1 + shatter * (2.8 + (i % 5) * 0.2);
+            x = lerp(x, bx * fly, shatter);
+            y = lerp(y, by * fly, shatter);
+            z = lerp(z, bz * fly, shatter);
+            // Coagulate: pull hard toward centre at rubedo
+            if (p > 0.78) {
+                const c = (p - 0.78) / 0.22;
+                x *= (1 - c * 0.92);
+                y *= (1 - c * 0.92);
+                z *= (1 - c * 0.92);
+            }
+            pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
+            const u = (i % 17) / 17;
+            near.lerp(far, u);
+            col.setXYZ(i, near.r, near.g, near.b);
+        }
+        this.droplets.geometry.attributes.position.needsUpdate = true;
+        col.needsUpdate = true;
     }
 
     updateParticles(dt, t, p, motion) {
@@ -1076,7 +1280,7 @@ class Installation {
         this.state = 'attract';
 
         this.settings = Object.assign({
-            durationSeconds: 120,
+            durationSeconds: 90,
             idleSeconds: 60,
             tuning: '432',
             bellows: true,
@@ -1084,6 +1288,7 @@ class Installation {
             volume: 60,
             camera: true,
             visitorChoice: true,
+            fanMode: false,
             pixelRatio: 2
         }, this.loadSettings());
 
@@ -1106,6 +1311,7 @@ class Installation {
             introDuration: document.getElementById('intro-duration'),
             hud: document.getElementById('hud'),
             hint: document.getElementById('hud-hint'),
+            voice: document.getElementById('voice-line'),
             stage: document.getElementById('hud-stage'),
             progress: document.getElementById('hud-progress'),
             end: document.getElementById('hud-end'),
@@ -1171,7 +1377,8 @@ class Installation {
             A.setMasterVolume(s.volume / 100);
         }
         this.engine.setTone(this.sessionTuning);
-        this.engine.riseSeconds = Math.max(30, s.durationSeconds * 0.55);
+        this.engine.setFanMode(!!s.fanMode);
+        this.engine.riseSeconds = Math.max(28, s.durationSeconds * 0.55);
         this.engine.renderer.setPixelRatio(Math.min(window.devicePixelRatio, s.pixelRatio));
         this.sensor.enabled = !!s.camera;
         if (this.el.introDuration) this.el.introDuration.textContent = durationWords(s.durationSeconds);
@@ -1337,10 +1544,83 @@ class Installation {
         this.sessionStart = performance.now();
         this.sessionElapsed = 0;
         this.engine.inSession = true;
-        this.engine.opus = Math.min(this.engine.opus, 0.15);
+        this.engine.opus = 0.02;
+        this.engine.shatter = 0;
+        this.engine.shatterTarget = 0;
+        this.voiceIndex = 0;
+        this.againUntil = 0;
+        this.clearVoice();
         const A = window.AlchemicalAudio;
         if (A) A.setSessionActive(true);
         this.currentStageKey = null;
+    }
+
+    speak(text, hold = 3, command = false) {
+        const el = this.el.voice;
+        if (!el) return;
+        el.textContent = text;
+        el.classList.toggle('is-command', !!command);
+        el.classList.add('is-visible');
+        this.voiceUntil = performance.now() / 1000 + hold;
+        // store absolute-ish end using session clock in loop
+        this._voiceHold = hold;
+        this._voiceStartedAt = this.sessionElapsed;
+    }
+
+    clearVoice() {
+        const el = this.el.voice;
+        if (!el) return;
+        el.classList.remove('is-visible', 'is-command');
+        el.textContent = '';
+        this.voiceUntil = 0;
+    }
+
+    updateVoice(elapsed, motion, stillness) {
+        const el = this.el.voice;
+        if (!el) return;
+
+        // Fractionation: if they move during Caput Corvi after the lesson, say Again.
+        if (elapsed > 12 && elapsed < 28 && motion > 0.45 && this.engine.opus < 0.28) {
+            if (this.sessionElapsed > this.againUntil) {
+                this.speak('Again.', 1.6, true);
+                this.againUntil = this.sessionElapsed + 3.5;
+            }
+            return;
+        }
+
+        // Fade out current line when its hold is done
+        if (this._voiceStartedAt != null && elapsed - this._voiceStartedAt > (this._voiceHold || 3)) {
+            if (el.classList.contains('is-visible') && !el.classList.contains('is-command')) {
+                el.classList.remove('is-visible');
+            } else if (el.classList.contains('is-command') && elapsed - this._voiceStartedAt > (this._voiceHold || 2)) {
+                el.classList.remove('is-visible', 'is-command');
+            }
+        }
+
+        // Advance script
+        while (this.voiceIndex < VOICE.length && elapsed >= VOICE[this.voiceIndex].at) {
+            const line = VOICE[this.voiceIndex];
+            if (line.needStill && stillness < 0.55) break;
+            // Lesson: force a shatter when "Move." is showing
+            if (line.text === 'Move.') {
+                this.engine.shatterTarget = 1;
+                // Auto-shatter if they don't move within 1.5s
+                setTimeout(() => {
+                    if (this.state === 'work' && this.sessionElapsed < 4) this.engine.shatterTarget = 1;
+                }, 1500);
+            }
+            if (line.text === 'Now stop.') {
+                this.engine.shatterTarget = 0;
+            }
+            this.speak(line.text, line.hold || 3, !!line.command);
+            this.voiceIndex++;
+            break;
+        }
+
+        // Rubedo silence: clear voice after the last line and leave the mirror
+        if (elapsed > 80 && this.engine.opus > 0.85) {
+            el.classList.remove('is-visible', 'is-command');
+        }
     }
 
     endSession(completed) {
@@ -1410,6 +1690,7 @@ class Installation {
         this.show(this.el.reflect, false);
         this.show(this.el.attract, true);
         if (this.el.hint) this.el.hint.classList.remove('is-visible');
+        this.clearVoice();
         const A = window.AlchemicalAudio;
         if (A) A.setSessionActive(false);
         // Back to the curator's defaults for the next person
@@ -1459,14 +1740,15 @@ class Installation {
             }
             // A gentle nudge if the visitor has been moving for a few seconds
             if (this.el.hint) {
-                if (this.sensor.motion > 0.3) {
+                if (this.sensor.motion > 0.3 && this.sessionElapsed > 12) {
                     if (!this.hintSince) this.hintSince = now;
-                    if (now - this.hintSince > 2500 && this.sessionElapsed > 6) this.el.hint.classList.add('is-visible');
+                    if (now - this.hintSince > 2800) this.el.hint.classList.add('is-visible');
                 } else {
                     this.hintSince = 0;
                     this.el.hint.classList.remove('is-visible');
                 }
             }
+            this.updateVoice(this.sessionElapsed, this.sensor.motion, this.sensor.stillness);
             if (this.sessionElapsed >= this.settings.durationSeconds) this.endSession(true);
         } else if (this.state === 'reflect') {
             if (now > this.reflectDeadline) this.saveReflection();
@@ -1501,6 +1783,7 @@ class Curator {
             mute: document.getElementById('c-mute'),
             camera: document.getElementById('c-camera'),
             choice: document.getElementById('c-choice'),
+            fan: document.getElementById('c-fan'),
             pixel: document.getElementById('c-pixel'),
             lock: document.getElementById('c-lock'),
             fullscreen: document.getElementById('c-fullscreen'),
@@ -1566,6 +1849,7 @@ class Curator {
             this.inst.startSensor();
         });
         if (f.choice) f.choice.addEventListener('change', (e) => { s.visitorChoice = e.target.checked; this.inst.applySettings(); });
+        if (f.fan) f.fan.addEventListener('change', (e) => { s.fanMode = e.target.checked; this.inst.applySettings(); });
         if (f.pixel) f.pixel.addEventListener('change', (e) => { s.pixelRatio = parseFloat(e.target.value); this.inst.applySettings(); window.dispatchEvent(new Event('resize')); });
         if (f.lock) f.lock.addEventListener('click', () => this.applyLock(!this.locked));
         if (f.fullscreen) f.fullscreen.addEventListener('click', () => this.toggleFullscreen());
@@ -1591,6 +1875,7 @@ class Curator {
         if (f.volumeVal) f.volumeVal.textContent = `${s.volume}%`;
         if (f.camera) f.camera.checked = !!s.camera;
         if (f.choice) f.choice.checked = !!s.visitorChoice;
+        if (f.fan) f.fan.checked = !!s.fanMode;
         if (f.pixel) f.pixel.value = String(s.pixelRatio);
     }
 

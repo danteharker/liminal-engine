@@ -61,16 +61,17 @@
             <ol class="intro-steps">
                 <li>Sit comfortably. Rest your hands.</li>
                 <li>Look at the sphere and be as still as you can.</li>
-                <li>Stay for <span id="intro-duration">two minutes</span>. When you are still it settles and turns to gold. If you move, it darkens; be still and it returns.</li>
+                <li>Stay for <span id="intro-duration">ninety seconds</span>. When you are still it settles and turns to gold. If you move, it shatters; be still and it gathers again.</li>
             </ol>
             <button id="intro-begin" type="button" class="big-btn">I'm ready</button>
             <p class="small">It begins on its own in <span id="intro-count">15</span> seconds.</p>
         </div>
     </section>
 
-    <!-- HUD during the work: stage name, one hairline, a nudge, a way out -->
+    <!-- HUD during the work: stage name, voice, hairline, a way out -->
     <section id="hud" class="layer layer-passive" aria-hidden="true">
         <div id="hud-stage" class="stage"></div>
+        <p id="voice-line" class="voice" aria-live="polite"></p>
         <p id="hud-hint" class="hint">Be still. The metal is listening.</p>
         <div class="progress-track"><div id="hud-progress" class="progress"></div></div>
         <button id="hud-end" type="button" class="quiet-btn" aria-label="End the session early">end</button>
@@ -112,7 +113,7 @@
                 <label>Session
                     <select id="c-duration">
                         <option value="60">1 minute</option>
-                        <option value="90">90 seconds</option>
+                        <option value="90" selected>90 seconds</option>
                         <option value="120">2 minutes</option>
                         <option value="180">3 minutes</option>
                         <option value="300">5 minutes</option>
@@ -145,6 +146,7 @@
                 <label class="check"><input id="c-bellows" type="checkbox"> Bellows (frame drum)</label>
                 <label class="check"><input id="c-camera" type="checkbox"> Camera sensor</label>
                 <label class="check"><input id="c-choice" type="checkbox"> Visitor chooses the tone</label>
+                <label class="check"><input id="c-fan" type="checkbox"> Fan mode (pure black)</label>
                 <label>Volume <span id="c-volume-val">60%</span>
                     <input id="c-volume" type="range" min="0" max="100" step="1">
                 </label>
