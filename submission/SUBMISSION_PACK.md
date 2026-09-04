@@ -28,14 +28,15 @@ Caption line for every image:
 
 ---
 
-## 2. Vimeo
+## 2. YouTube
 
-1. vimeo.com → New video → Upload `submission/liminal-engine-90s.mp4`.
+1. youtube.com → Create → Upload video → `submission/liminal-engine-90s.mp4`.
 2. Title: `Liminal Engine (2026) — one sitting, 90 seconds`
 3. Description: paste the **Short description** from section 3, then a blank line, then `Live: https://danteharker.github.io/liminal-engine/`.
-4. Privacy: **Unlisted** (anyone with the link). Turn **off** "Allow downloads". Leave embedding on.
-5. Thumbnail: upload `05-rubedo.jpg`.
-6. Copy the link. Put it here so it is in one place: `VIMEO LINK: ____________________`
+4. Audience: not made for kids. Under "Show more": turn **off** comments, turn **off** "Allow embedding" only if you want; leave it on for gallery sites.
+5. Visibility: **Unlisted**. Not Private (jurors could not open it) and not Public (keeps it out of search until the shows announce).
+6. Thumbnail: upload `05-rubedo.jpg`.
+7. Copy the link. Put it here so it is in one place: `VIDEO LINK: ____________________`
 
 ---
 
@@ -75,7 +76,7 @@ Apply by the Google Form:
 https://docs.google.com/forms/d/e/1FAIpQLSdVrHm6oGR713gWE5AQoyYznbnN0TJPfcOjrKHTf1nJ56wGcA/viewform
 (or by email, subject line `Narcissus — Dante Harker`; the address is on the Art Jobs listing once logged in.)
 
-They ask for: artist statement, description of work, images or a video link, technical requirements and dimensions, short biography. All five are in section 3. Use the Vimeo link for the video and attach `05-rubedo.jpg`, `02-nigredo.jpg` and `06-the-question.jpg` as the three images if there is a limit.
+They ask for: artist statement, description of work, images or a video link, technical requirements and dimensions, short biography. All five are in section 3. Use the video link for the video and attach `05-rubedo.jpg`, `02-nigredo.jpg` and `06-the-question.jpg` as the three images if there is a limit.
 
 Their themes include "mirrors, reflection and doubling", "the attention economy" and "refusal and opacity in digital space". If there is a box for how the work relates to the theme, use this:
 
@@ -89,7 +90,7 @@ Deadline **11 October 2026** (late entries 12 to 18 October, £35). Regular fee 
 
 1. Register and pay: https://shop.aestheticamagazine.com/products/aesthetica-art-prize-entry
 2. The entry form arrives by email. Complete it before 11 October.
-3. Enter **Liminal Engine** as work one. Use the one-line title/medium block, the short description, and the statement. Upload web-resolution JPEGs (the six stills are fine as they are; if they cap file size, resave at 1920 wide). Give the Vimeo link and the live link.
+3. Enter **Liminal Engine** as work one. Use the one-line title/medium block, the short description, and the statement. Upload web-resolution JPEGs (the six stills are fine as they are; if they cap file size, resave at 1920 wide). Give the video link and the live link.
 4. Leave work two empty unless you have a second piece; it does not weaken the entry.
 
 ---
@@ -101,4 +102,4 @@ Deadline **11 October 2026** (late entries 12 to 18 October, £35). Regular fee 
 - **arebyte BYOB 2027**: call around February 2027, video up to 3.5 minutes; the 90s film qualifies.
 - **Prix Ars Electronica 2027**: call January to March 2027, free. Check whether Digital Musics and Sound Art runs; the generative audio qualifies.
 
-Keep the Vimeo link and this file; every one of these asks for the same five things.
+Keep the video link and this file; every one of these asks for the same five things.
