@@ -1,894 +1,503 @@
 /* ==========================================================================
-   THE HERMETIC ENGINE - SOUND SYSTEM (WEB AUDIO API)
+   LIMINAL ENGINE — SOUND (Web Audio API)
+
+   Everything is synthesised live. Nothing is sampled or looped.
+
+   The tunings are the six tones the piece can be set to by the curator.
+   They are labelled by the planetary metals of the alchemical tradition
+   (Saturn/lead, Sol/gold, Venus/copper, Jupiter/tin, Mercury/quicksilver,
+   Luna/silver). These are artistic associations, not claims.
+
+   setOpus(progress) is the one control the installation drives during a
+   session. progress runs 0 -> 1 as the visitor becomes still:
+     0.00 - 0.25  Nigredo     dark, closed filter, bellows at 84 bpm
+     0.25 - 0.50  Albedo      filter opens, bellows slow
+     0.50 - 0.75  Citrinitas  pad warms, bellows almost gone
+     0.75 - 1.00  Rubedo      open, quiet, still
    ========================================================================== */
 
 class AlchemicalAudioEngine {
     constructor() {
         this.ctx = null;
         this.isActive = false;
-        
-        // Audio Nodes
+        this.isHardwareMuted = false;
+        this.curatorVolume = 0.6;
+
         this.masterGain = null;
-        this.droneOscLeft = null;
-        this.droneOscRight = null;
+        this.limiter = null;
+        this.filter = null;
         this.pannerLeft = null;
         this.pannerRight = null;
+        this.droneOscLeft = null;
+        this.droneOscRight = null;
         this.droneLfo = null;
         this.droneLfoGain = null;
-        this.filter = null;
-        
-        // Generative Chord Pad Nodes
+        this.delayNode = null;
+        this.delayGain = null;
+
         this.padOscs = [];
         this.padGains = [];
         this.padGainMaster = null;
         this.currentChordIndex = 0;
-        this.chordInterval = null;
-        
-        // State variables
-        this.baseDroneFreq = 64.22; // C2 Note aligned to Solfeggio A4=432Hz cosmic tuning
-        this.state = 'zhenren';
-        this.gravity = 0;
-        this.speed = 1;
-        this.communeY = 0.5; // Mouse cursor y-modulator
-        this.eclipseActive = false; // Astrological eclipse status
-        
-        // Solfeggio Scale Map (Harmonics, descriptions, and visual properties)
-        this.solfeggioFrequencies = {
-            '432': { name: 'NEURAL SYNCHRONY', drone: 64.22, chime: 432, color: '#ffd700', desc: 'NEURAL SYNCHRONY: Induces theta-delta coherence (64.22Hz carrier, 432Hz peak resonance) to dissolve analytical chatter and quiet self-talk.' },
-            '528': { name: 'CORTICAL CALMING', drone: 66.00, chime: 528, color: '#06d6a0', desc: 'CORTICAL CALMING: Dampens sympathetic arousal and stress feedback loops in prefrontal cortex networks to stabilise visceral relaxation.' },
-            '396': { name: 'AMYGDALA DAMPENING', drone: 49.50, chime: 396, color: '#ff5e62', desc: 'AMYGDALA DAMPENING: De-escalates threat-detection cycles in the limbic system, grounding active consciousness in absolute safety.' },
-            '639': { name: 'HEMISPHERIC BALANCE', drone: 79.88, chime: 639, color: '#ff9f1c', desc: 'HEMISPHERIC BALANCE: Encourages bilateral left-right cerebral integration, facilitating integrated, non-narrative cognitive processing.' },
-            '741': { name: 'DEFAULT MODE QUIETING', drone: 46.31, chime: 741, color: '#00f5ff', desc: 'DEFAULT MODE QUIETING: Dampens default mode network activity, encouraging immediate dissolution of active logical narratives.' },
-            '852': { name: 'THETA STATE INDUCTION', drone: 53.25, chime: 852, color: '#8a2be2', desc: 'THETA STATE INDUCTION: Shifts baseline awareness to deep hypnagogic dream-state frequencies, opening the profound void between thoughts.' }
+        this.chordTimer = null;
+
+        this.tunings = {
+            '396': { metal: 'Saturn · Lead',        drone: 49.50, chime: 396 },
+            '432': { metal: 'Sol · Gold',           drone: 64.22, chime: 432 },
+            '528': { metal: 'Venus · Copper',       drone: 66.00, chime: 528 },
+            '639': { metal: 'Jupiter · Tin',        drone: 79.88, chime: 639 },
+            '741': { metal: 'Mercury · Quicksilver', drone: 46.31, chime: 741 },
+            '852': { metal: 'Luna · Silver',        drone: 53.25, chime: 852 }
         };
-        this.activeSolfeggio = '432';
-        
-        // Heartbeat timer reference
+        this.activeTuning = '432';
+        this.baseDroneFreq = this.tunings[this.activeTuning].drone;
+        this.binauralOffset = 8; // Hz between left and right drones
+
+        // Bellows (frame drum)
+        this.bellowsEnabled = true;
+        this.bellowsPattern = 'pulse'; // pulse | heartbeat | roll
+        this.bellowsTimer = null;
+        this.bellowsStep = 0;
+        this.bellowsTempo = 84;
+        this.bellowsGainValue = 1.0; // scaled by opus
+        this.nextNoteTime = 0;
+
         this.heartbeatTimer = null;
-        
-        // Cathedral Delay Echo Chamber Nodes
-        this.delayNode = null;
-        this.delayGain = null;
-        
-        // Waveform styling hooks
-        this.waveContainer = document.getElementById('wave-container');
-        this.audioIcon = document.getElementById('audio-icon');
-        this.audioLabel = document.getElementById('audio-label');
-
-        // Floating audio button elements
-        this.floatingBtn = document.getElementById('floating-audio-toggle');
-        this.floatingIcon = document.getElementById('floating-audio-icon');
-        this.floatingLabel = document.getElementById('floating-audio-label');
-        
-        // Timer Quiet button element
-        this.timerAudioBtn = document.getElementById('timer-audio-btn');
-
-        // Journey Drumming States
-        this.journeyDrummingActive = false;
-        this.journeyDrummingPattern = 'shamanic';
-        this.journeyDrummingTimer = null;
-        this.drumBeatIndex = 0;
-        this.drumTempo = 90; // Grounding 90BPM
-        this.nextNoteTime = 0.0;
+        this.opus = 0.0;
+        this.inSession = false;
     }
 
+    /* ---------------- lifecycle ---------------- */
+
     init() {
-        // Create context
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioContextClass();
-        
-        // Create master dynamics limiter to prevent digital clipping in gallery spaces
+        if (this.ctx) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AC();
+        const now = this.ctx.currentTime;
+
+        // Master limiter protects gallery amplification from clipping
         this.limiter = this.ctx.createDynamicsCompressor();
-        this.limiter.threshold.setValueAtTime(-6.0, this.ctx.currentTime);
-        this.limiter.knee.setValueAtTime(12, this.ctx.currentTime);
-        this.limiter.ratio.setValueAtTime(8, this.ctx.currentTime);
-        this.limiter.attack.setValueAtTime(0.003, this.ctx.currentTime);
-        this.limiter.release.setValueAtTime(0.25, this.ctx.currentTime);
+        this.limiter.threshold.setValueAtTime(-6.0, now);
+        this.limiter.knee.setValueAtTime(12, now);
+        this.limiter.ratio.setValueAtTime(8, now);
+        this.limiter.attack.setValueAtTime(0.003, now);
+        this.limiter.release.setValueAtTime(0.25, now);
         this.limiter.connect(this.ctx.destination);
 
-        // Create master gain
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.masterGain.gain.setValueAtTime(0, now);
         this.masterGain.connect(this.limiter);
-        
+
         this.filter = this.ctx.createBiquadFilter();
         this.filter.type = 'lowpass';
-        this.filter.Q.setValueAtTime(4, this.ctx.currentTime);
-        this.filter.frequency.setValueAtTime(250, this.ctx.currentTime);
+        this.filter.Q.setValueAtTime(3, now);
+        this.filter.frequency.setValueAtTime(220, now);
         this.filter.connect(this.masterGain);
-        
-        // Initialise Left and Right Stereo Panners for Binaural Separation
+
+        // Binaural drone: two panned triangles a few Hz apart
         this.pannerLeft = this.ctx.createStereoPanner();
-        this.pannerLeft.pan.setValueAtTime(-1, this.ctx.currentTime);
+        this.pannerLeft.pan.setValueAtTime(-1, now);
         this.pannerLeft.connect(this.filter);
-        
         this.pannerRight = this.ctx.createStereoPanner();
-        this.pannerRight.pan.setValueAtTime(1, this.ctx.currentTime);
+        this.pannerRight.pan.setValueAtTime(1, now);
         this.pannerRight.connect(this.filter);
-        
-        // Initialise Core Left Drone Oscillator (Solfeggio C2 base)
+
         this.droneOscLeft = this.ctx.createOscillator();
         this.droneOscLeft.type = 'triangle';
-        this.droneOscLeft.frequency.setValueAtTime(this.baseDroneFreq, this.ctx.currentTime);
+        this.droneOscLeft.frequency.setValueAtTime(this.baseDroneFreq, now);
         this.droneOscLeft.connect(this.pannerLeft);
         this.droneOscLeft.start();
-        
-        // Initialise Core Right Drone Oscillator (+10Hz offset for Binaural Alpha wave)
+
         this.droneOscRight = this.ctx.createOscillator();
         this.droneOscRight.type = 'triangle';
-        this.droneOscRight.frequency.setValueAtTime(this.baseDroneFreq + 10, this.ctx.currentTime);
+        this.droneOscRight.frequency.setValueAtTime(this.baseDroneFreq + this.binauralOffset, now);
         this.droneOscRight.connect(this.pannerRight);
         this.droneOscRight.start();
-        
-        // Initialise Drone LFO (Creates the breathing, oscillating filter sweep)
+
+        // Breathing LFO on the filter
         this.droneLfo = this.ctx.createOscillator();
         this.droneLfo.type = 'sine';
-        this.droneLfo.frequency.setValueAtTime(0.1, this.ctx.currentTime); // Slow, breathing rate by default
-        
+        this.droneLfo.frequency.setValueAtTime(0.08, now);
         this.droneLfoGain = this.ctx.createGain();
-        this.droneLfoGain.gain.setValueAtTime(100, this.ctx.currentTime);
-        
+        this.droneLfoGain.gain.setValueAtTime(90, now);
         this.droneLfo.connect(this.droneLfoGain);
         this.droneLfoGain.connect(this.filter.frequency);
         this.droneLfo.start();
-        
-        // Initialise Cathedral Delay / Echo Chamber
+
+        // Long room echo
         this.delayNode = this.ctx.createDelay(2.0);
         this.delayGain = this.ctx.createGain();
-        
-        this.delayNode.delayTime.setValueAtTime(0.6, this.ctx.currentTime); // 0.6s echo delay time
-        this.delayGain.gain.setValueAtTime(0.4, this.ctx.currentTime);      // 0.4 feedback gain loop
-        
+        this.delayNode.delayTime.setValueAtTime(0.6, now);
+        this.delayGain.gain.setValueAtTime(0.4, now);
         this.delayNode.connect(this.delayGain);
         this.delayGain.connect(this.delayNode);
         this.delayNode.connect(this.masterGain);
-        
-        // Initialise Generative Chord Pad Synth (Lush ambient background cloud)
+
+        // Pad cloud
         this.padGainMaster = this.ctx.createGain();
-        this.padGainMaster.gain.setValueAtTime(0.06, this.ctx.currentTime); // Subtle background presence
-        this.padGainMaster.connect(this.filter); // Route through dynamic filter
-        
-        this.padOscs = [];
-        this.padGains = [];
-        const padRatios = [1.0, 1.25, 1.5, 1.875]; // Initial Major 7th
-        const chimeFreq = this.solfeggioFrequencies[this.activeSolfeggio].chime;
-        
+        this.padGainMaster.gain.setValueAtTime(0.05, now);
+        this.padGainMaster.connect(this.filter);
+        const chime = this.tunings[this.activeTuning].chime;
+        const ratios = [1.0, 1.25, 1.5, 1.875];
         for (let i = 0; i < 4; i++) {
             const osc = this.ctx.createOscillator();
-            const oscGain = this.ctx.createGain();
-            
-            osc.type = 'triangle'; // Smooth, warm, harmonic-rich
-            osc.frequency.setValueAtTime((chimeFreq * 0.5) * padRatios[i], this.ctx.currentTime);
-            oscGain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-            
-            osc.connect(oscGain);
-            oscGain.connect(this.padGainMaster);
+            const g = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(chime * 0.5 * ratios[i], now);
+            g.gain.setValueAtTime(0.25, now);
+            osc.connect(g);
+            g.connect(this.padGainMaster);
             osc.start();
-            
             this.padOscs.push(osc);
-            this.padGains.push(oscGain);
+            this.padGains.push(g);
         }
-        
+
         this.isActive = true;
-        this.applyPhilosophicalState();
-        
-        // Start synchronised alchemical heartbeat loop
         this.scheduleNextHeartbeat();
-        
-        // Start generative chord morph progression loop
         this.scheduleNextChordMorph();
-        
-        // Smoothly fade in audio
-        this.masterGain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 1.5);
-        
-        // Start drumming if active
-        if (this.journeyDrummingActive) {
-            this.startJourneyDrummingLoop();
-        }
+        this.masterGain.gain.linearRampToValueAtTime(this.targetMasterLevel(), now + 2.0);
+        if (this.bellowsEnabled) this.startBellows();
     }
 
-    toggle() {
+    resume() {
+        if (!this.ctx) { this.init(); return; }
+        if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
         if (!this.isActive) {
-            // Start context or resume it
-            if (!this.ctx) {
-                this.init();
-            } else {
-                this.ctx.resume().catch(err => console.warn("Error resuming context:", err));
-                const now = this.ctx.currentTime;
-                this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-                this.masterGain.gain.linearRampToValueAtTime(0.2, now + 0.5);
-                this.scheduleNextHeartbeat();
-                this.scheduleNextChordMorph();
-                if (this.journeyDrummingActive) {
-                    this.startJourneyDrummingLoop();
-                }
-            }
             this.isActive = true;
-            this.audioIcon.textContent = '🔊';
-            this.audioLabel.textContent = 'DEACTIVATE AURAL RESONANCE';
-            this.waveContainer.classList.add('playing');
-
-            if (this.floatingIcon) this.floatingIcon.textContent = '🔊';
-            if (this.floatingLabel) this.floatingLabel.textContent = 'DEACTIVATE RESONANCE';
-            if (this.floatingBtn) this.floatingBtn.classList.add('playing');
-            if (this.timerAudioBtn) this.timerAudioBtn.textContent = '🔊';
-        } else {
-            // Mute
-            this.isActive = false;
-            if (this.heartbeatTimer) {
-                clearTimeout(this.heartbeatTimer);
-                this.heartbeatTimer = null;
-            }
-            if (this.chordInterval) {
-                clearTimeout(this.chordInterval);
-                this.chordInterval = null;
-            }
-            this.stopJourneyDrummingLoop();
-            
-            // Clean up UI toggle state
-            const drummingToggle = document.getElementById('drumming-toggle');
-            if (drummingToggle) {
-                drummingToggle.checked = false;
-            }
-            this.journeyDrummingActive = false;
-
-            if (this.ctx) {
-                try {
-                    const now = this.ctx.currentTime;
-                    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-                    this.masterGain.gain.linearRampToValueAtTime(0, now + 0.15);
-                } catch (e) {
-                    if (this.masterGain) this.masterGain.gain.value = 0;
-                }
-                
-                // Suspend context after ramp completes to freeze the audio clock and ensure absolute silence
-                setTimeout(() => {
-                    if (this.ctx && !this.isActive) {
-                        this.ctx.suspend().catch(err => console.log("Context suspend error:", err));
-                    }
-                }, 200);
-            }
-
-            this.audioIcon.textContent = '🔇';
-            this.audioLabel.textContent = 'ACTIVATE AURAL RESONANCE';
-            this.waveContainer.classList.remove('playing');
-
-            if (this.floatingIcon) this.floatingIcon.textContent = '🔇';
-            if (this.floatingLabel) this.floatingLabel.textContent = 'ACTIVATE AURAL RESONANCE';
-            if (this.floatingBtn) this.floatingBtn.classList.remove('playing');
-            if (this.timerAudioBtn) this.timerAudioBtn.textContent = '🔇';
-        }
-    }
-
-    // Curator & Room Volume Calibration
-    setMasterVolume(val) {
-        this.curatorVolume = Math.max(0, Math.min(1, val));
-        if (this.isActive && this.ctx && this.masterGain && !this.isHardwareMuted) {
             const now = this.ctx.currentTime;
             this.masterGain.gain.cancelScheduledValues(now);
-            this.masterGain.gain.setTargetAtTime(this.curatorVolume * 0.35, now, 0.1);
+            this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+            this.masterGain.gain.linearRampToValueAtTime(this.targetMasterLevel(), now + 1.0);
+            this.scheduleNextHeartbeat();
+            this.scheduleNextChordMorph();
+            if (this.bellowsEnabled) this.startBellows();
+        }
+    }
+
+    targetMasterLevel() {
+        if (this.isHardwareMuted) return 0;
+        return this.curatorVolume * 0.35;
+    }
+
+    /* ---------------- curator controls ---------------- */
+
+    setMasterVolume(v) {
+        this.curatorVolume = Math.max(0, Math.min(1, v));
+        if (this.isActive && this.ctx) {
+            const now = this.ctx.currentTime;
+            this.masterGain.gain.cancelScheduledValues(now);
+            this.masterGain.gain.setTargetAtTime(this.targetMasterLevel(), now, 0.1);
         }
     }
 
     toggleHardwareMute() {
         this.isHardwareMuted = !this.isHardwareMuted;
-        if (this.isActive && this.ctx && this.masterGain) {
+        if (this.isActive && this.ctx) {
             const now = this.ctx.currentTime;
-            const target = this.isHardwareMuted ? 0 : (this.curatorVolume !== undefined ? this.curatorVolume : 0.5) * 0.35;
             this.masterGain.gain.cancelScheduledValues(now);
-            this.masterGain.gain.setTargetAtTime(target, now, 0.08);
+            this.masterGain.gain.setTargetAtTime(this.targetMasterLevel(), now, 0.08);
         }
         return this.isHardwareMuted;
     }
 
-    // Set parameters on the fly based on user input
-    setGravity(gravity) {
-        this.gravity = gravity;
+    setTuning(key) {
+        if (!this.tunings[key]) return;
+        this.activeTuning = key;
+        const t = this.tunings[key];
+        this.baseDroneFreq = t.drone;
         if (!this.isActive || !this.ctx) return;
-        
-        // As gravity decreases, lower the fundamental drone pitch (feels deep, floating, infinite)
-        // Standard (1G) = 65.4Hz (C2). Zero G = 55.0Hz (A1). Negative G = 41.2Hz (E1).
-        let targetFreq = this.baseDroneFreq;
-        if (gravity < 0) {
-            targetFreq = this.baseDroneFreq * (1.0 + gravity * 0.35); // Lower pitch for negative gravity
-        } else if (gravity > 0) {
-            targetFreq = this.baseDroneFreq * (1.0 + gravity * 0.15); // Slightly higher pitch for standard
-        } else {
-            targetFreq = this.baseDroneFreq * 0.85; // Pure float
-        }
-        
-        if (this.eclipseActive) {
-            targetFreq = 54.0; // Enforce deep 54Hz gravity well under Eclipse
-        }
-        
-        this.droneOscLeft.frequency.exponentialRampToValueAtTime(targetFreq, this.ctx.currentTime + 0.8);
-        this.droneOscRight.frequency.exponentialRampToValueAtTime(targetFreq + 10, this.ctx.currentTime + 0.8);
-        
-        // Alter LFO depth based on gravity
-        const lfoDepth = 100 + (Math.abs(gravity) * 80);
-        this.droneLfoGain.gain.linearRampToValueAtTime(lfoDepth, this.ctx.currentTime + 0.5);
+        const now = this.ctx.currentTime;
+        this.droneOscLeft.frequency.exponentialRampToValueAtTime(t.drone, now + 1.5);
+        this.droneOscRight.frequency.exponentialRampToValueAtTime(t.drone + this.binauralOffset, now + 1.5);
+        this.morphToNextChord();
+        this.playChime(t.chime);
     }
 
-    setSpeed(speed) {
-        this.speed = speed;
+    setBellowsEnabled(on) {
+        this.bellowsEnabled = !!on;
+        if (!this.ctx || !this.isActive) return;
+        if (this.bellowsEnabled) this.startBellows(); else this.stopBellows();
+    }
+
+    setBellowsPattern(p) {
+        if (!['pulse', 'heartbeat', 'roll'].includes(p)) return;
+        this.bellowsPattern = p;
+    }
+
+    /* ---------------- the opus ---------------- */
+
+    // Called every frame by the installation with the smoothed 0..1 progress.
+    setOpus(progress) {
+        this.opus = Math.max(0, Math.min(1, progress));
         if (!this.isActive || !this.ctx) return;
-        
-        // Map speed to filter cutoff multiplier
-        const targetCutoff = 250 + (speed * 150) + (this.communeY * 500);
-        this.filter.frequency.linearRampToValueAtTime(targetCutoff, this.ctx.currentTime + 0.5);
+        const p = this.opus;
+        const now = this.ctx.currentTime;
+
+        // Filter opens as the work completes: 160 Hz (nigredo) -> 1400 Hz (rubedo)
+        const cutoff = 160 * Math.pow(1400 / 160, p);
+        this.filter.frequency.setTargetAtTime(cutoff, now, 0.6);
+        this.filter.Q.setTargetAtTime(3.0 - p * 2.0, now, 0.6);
+
+        // Pad grows quieter and purer
+        this.padGainMaster.gain.setTargetAtTime(0.05 - p * 0.03, now, 0.8);
+
+        // Bellows: slow from 84 to 48 bpm and fade out in the last quarter
+        this.bellowsTempo = 84 - p * 36;
+        this.bellowsGainValue = p < 0.75 ? 1.0 : Math.max(0, 1.0 - (p - 0.75) / 0.25);
+
+        // Binaural spread narrows towards unison at rubedo (8 Hz -> 4 Hz)
+        const spread = 8 - p * 4;
+        this.droneOscRight.frequency.setTargetAtTime(this.baseDroneFreq + spread, now, 1.0);
     }
 
-    // Magnetic cursor conjunction Theremin frequency sweeps
-    setCommuneModulation(yPercent) {
-        // Disabled: all sound parameter values are set statically/dynamically driven exclusively by dashboard controls.
-        return;
+    setSessionActive(active) {
+        this.inSession = !!active;
+        if (!this.isActive || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        if (!active) {
+            // Return to the ambient attract state
+            this.filter.frequency.setTargetAtTime(220, now, 1.5);
+            this.filter.Q.setTargetAtTime(3, now, 1.5);
+            this.padGainMaster.gain.setTargetAtTime(0.05, now, 1.5);
+            this.bellowsTempo = 84;
+            this.bellowsGainValue = 1.0;
+        }
     }
 
-    // Generative chord progression schedule
+    /* ---------------- pad progression ---------------- */
+
     scheduleNextChordMorph() {
         if (!this.isActive || !this.ctx) return;
-        
-        this.chordInterval = setTimeout(() => {
+        if (this.chordTimer) clearTimeout(this.chordTimer);
+        this.chordTimer = setTimeout(() => {
             this.morphToNextChord();
             this.scheduleNextChordMorph();
-        }, 8000); // Transitions chords every 8 seconds
+        }, 9000);
     }
 
     morphToNextChord() {
         if (!this.isActive || !this.ctx) return;
-        
         this.currentChordIndex = (this.currentChordIndex + 1) % 4;
-        
-        const isZhenren = this.state === 'zhenren';
-        const chordsZhenren = [
-            [1.0, 1.25, 1.5, 1.875],     // Major 7th
-            [1.0, 1.35, 1.5, 1.875],     // Lydian (#4) 7th
-            [1.125, 1.35, 1.5, 2.0],     // Sus2 Lydian 9th
-            [0.875, 1.0, 1.25, 1.5]      // Subdominant peaceful lift
+        const chords = [
+            [1.0, 1.25, 1.5, 1.875],
+            [1.0, 1.35, 1.5, 1.875],
+            [1.125, 1.35, 1.5, 2.0],
+            [0.875, 1.0, 1.25, 1.5]
         ];
-        const chordsTrickster = [
-            [1.0, 1.2, 1.4, 1.8],        // Mystic Minor / Tritone
-            [0.9, 1.2, 1.5, 1.75],       // Unstable Suspended
-            [1.0, 1.35, 1.414, 1.8],     // Diminished tension
-            [0.8, 1.2, 1.5, 2.0]         // Dark unresolved
-        ];
-        
-        // Deep sub-harmonic frequencies under Eclipse mode
-        const chordsEclipse = [
-            [1.0, 1.5, 2.0, 3.0],        // Pure octave/fifths singularity chord
-            [0.75, 1.0, 1.5, 2.25],      // Muffled fifths
-            [1.0, 1.333, 2.0, 2.666],    // Sub-octave resonance
-            [0.5, 1.0, 1.5, 2.0]         // Absolute bottom well chord
-        ];
-        
-        let chordSet = isZhenren ? chordsZhenren : chordsTrickster;
-        if (this.eclipseActive) {
-            chordSet = chordsEclipse;
-        }
-        
-        const ratios = chordSet[this.currentChordIndex];
-        const chimeFreq = this.solfeggioFrequencies[this.activeSolfeggio].chime;
-        const baseFreq = this.eclipseActive ? 108.0 : (chimeFreq * 0.5); // Deep 108Hz base chord root for Eclipse
-        
+        const ratios = chords[this.currentChordIndex];
+        const base = this.tunings[this.activeTuning].chime * 0.5;
         const now = this.ctx.currentTime;
         this.padOscs.forEach((osc, i) => {
-            const targetFreq = baseFreq * ratios[i];
-            // Slow, gorgeous 4.5-second pitch glides simulating orbital shifts
-            osc.frequency.exponentialRampToValueAtTime(targetFreq, now + 4.5);
+            osc.frequency.exponentialRampToValueAtTime(base * ratios[i], now + 5.0);
         });
     }
 
-    setEclipseAudioMode(active) {
-        this.eclipseActive = active;
-        if (!this.isActive || !this.ctx) return;
-        
-        const now = this.ctx.currentTime;
-        if (active) {
-            // Sweep filter down to muffled, light-swallowing cutoff
-            this.filter.frequency.exponentialRampToValueAtTime(95, now + 3.0);
-            this.filter.Q.exponentialRampToValueAtTime(1.5, now + 3.0);
-            
-            // Boost Cathedral delay feedback for enormous cave-like echo space
-            this.delayGain.gain.linearRampToValueAtTime(0.72, now + 2.5);
-            this.delayNode.delayTime.linearRampToValueAtTime(0.85, now + 2.5);
-            
-            // Enforce deep sub-octave drone roots
-            this.setGravity(this.gravity);
-            this.morphToNextChord(); // Instantly trigger eclipse progression morph
-        } else {
-            // Restore normal parameters
-            this.filter.Q.linearRampToValueAtTime(this.state === 'zhenren' ? 3 : 8, now + 2.0);
-            this.delayGain.gain.linearRampToValueAtTime(0.4, now + 2.0);
-            this.delayNode.delayTime.linearRampToValueAtTime(0.6, now + 2.0);
-            
-            this.setSpeed(this.speed);
-            this.setGravity(this.gravity);
-            this.morphToNextChord();
-        }
-    }
+    /* ---------------- chimes ---------------- */
 
-    setPhilosophicalState(state) {
-        this.state = state;
-        this.applyPhilosophicalState();
-        if (this.isActive && this.ctx) {
-            this.morphToNextChord(); // Glide chord pad into the new set immediately
-        }
-    }
-
-    applyPhilosophicalState() {
-        if (!this.isActive || !this.ctx) return;
-        
-        if (this.state === 'zhenren') {
-            // Zhenren: slow, meditative LFO, clean low pass filter
-            this.droneLfo.frequency.linearRampToValueAtTime(0.08, this.ctx.currentTime + 1.0); // Ultra slow breathing
-            this.droneOscLeft.type = 'triangle'; // Clean, hollow
-            this.droneOscRight.type = 'triangle';
-            this.filter.Q.linearRampToValueAtTime(3, this.ctx.currentTime + 1.0);
-        } else {
-            // Trickster: faster, slightly chaotic/unstable LFO, sawtooth-like gritty texture
-            this.droneLfo.frequency.linearRampToValueAtTime(1.8, this.ctx.currentTime + 1.0); // Vibrating rate
-            this.droneOscLeft.type = 'sawtooth'; // Gritty, rich harmonics
-            this.droneOscRight.type = 'sawtooth';
-            this.filter.Q.linearRampToValueAtTime(8, this.ctx.currentTime + 1.0); // High resonance for squeals
-        }
-    }
-
-    setSolfeggioFrequency(freqStr) {
-        if (!this.solfeggioFrequencies[freqStr]) return;
-        this.activeSolfeggio = freqStr;
-        
-        const config = this.solfeggioFrequencies[freqStr];
-        this.baseDroneFreq = config.drone;
-        
-        // Update DOM description and border colour highlight if they exist
-        const descEl = document.getElementById('solfeggio-description');
-        if (descEl) {
-            descEl.textContent = config.desc;
-            descEl.style.borderLeftColor = config.color;
-        }
-        
-        if (!this.isActive || !this.ctx) return;
-        
-        // Smoothly glide left and right drone frequencies
-        const now = this.ctx.currentTime;
-        this.droneOscLeft.frequency.exponentialRampToValueAtTime(config.drone, now + 1.2);
-        this.droneOscRight.frequency.exponentialRampToValueAtTime(config.drone + 10, now + 1.2);
-        
-        // Smoothly shift the pad base notes to the new tuning centre
-        this.morphToNextChord();
-        
-        // Play an alignment bell chime in the exact sacred frequency!
-        this.playChime(config.chime);
-    }
-
-    // Phase 4: Magnetic Reach theremin proximity modulation
-    setAuraReachProximity(distance) {
-        // Disabled: all sound parameter values are set statically/dynamically driven exclusively by dashboard controls.
-        return;
-    }
-
-    // Phase 4: Meditation quiet void ambient volume and filter states
-    setMeditationVolumeState(active) {
+    playChime(freqOrKind = 520) {
         if (!this.isActive || !this.ctx) return;
         const now = this.ctx.currentTime;
-        this.meditationModeActive = active;
-        
-        if (active) {
-            // Silence chord pad cloud down to an ultra-subtle ethereal whisper
-            this.padGainMaster.gain.linearRampToValueAtTime(0.008, now + 4.0);
-            // Steep lowpass filter sweep down to deep, warm sub-sonics
-            this.filter.frequency.exponentialRampToValueAtTime(90.0, now + 4.0);
-            this.filter.Q.linearRampToValueAtTime(1.0, now + 4.0);
-        } else {
-            // Smoothly restore normal dynamic controls
-            const baseCutoff = 250 + (this.speed * 150) + (this.communeY * 500);
-            this.filter.frequency.exponentialRampToValueAtTime(baseCutoff, now + 2.0);
-            this.filter.Q.linearRampToValueAtTime(this.state === 'zhenren' ? 3 : 8, now + 2.0);
-            this.padGainMaster.gain.linearRampToValueAtTime(0.06, now + 2.0);
-        }
-    }
+        let base = typeof freqOrKind === 'number' ? freqOrKind : (freqOrKind === 'gold' ? 330 : 520);
+        const warm = base < 500;
 
-    // Synthesise a metallic chime / bell when a ring is spun or a rune is inscribed
-    playChime(type = 'silver') {
-        if (!this.isActive || !this.ctx) return;
-
-        const now = this.ctx.currentTime;
-        const mainGain = this.ctx.createGain();
-        mainGain.connect(this.masterGain);
-        
-        const isGold = type === 'gold' || type === 432 || type === 528 || type === 639;
-        
-        // Route wet signal output portion to the Cathedral Delay echo chamber
+        const main = this.ctx.createGain();
+        main.connect(this.masterGain);
         if (this.delayNode) {
-            const sendGain = this.ctx.createGain();
-            sendGain.gain.setValueAtTime(isGold ? 0.35 : 0.5, now);
-            mainGain.connect(sendGain);
-            sendGain.connect(this.delayNode);
+            const send = this.ctx.createGain();
+            send.gain.setValueAtTime(warm ? 0.35 : 0.5, now);
+            main.connect(send);
+            send.connect(this.delayNode);
         }
-        
-        // Bell metallic frequency ratios
-        let baseFreq = 520;
-        if (typeof type === 'number') {
-            baseFreq = type;
-        } else {
-            baseFreq = type === 'gold' ? 330 : 520;
-        }
-        
-        if (this.state === 'trickster') {
-            baseFreq *= (0.95 + Math.random() * 0.1); // Slightly detuned/erratic for Trickster
-        }
-        
-        // Add a soft bandpass filter to shape the chime body and pure metallic acoustics
-        const chimeFilter = this.ctx.createBiquadFilter();
-        chimeFilter.type = 'bandpass';
-        chimeFilter.frequency.setValueAtTime(baseFreq * 2, now);
-        chimeFilter.Q.setValueAtTime(1.5, now);
-        chimeFilter.connect(mainGain);
-        
-        const ratios = [1.0, 1.5, 2.0, 2.63, 3.12, 4.0];
-        const oscs = [];
-        
-        ratios.forEach((ratio, index) => {
+        const bp = this.ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(base * 2, now);
+        bp.Q.setValueAtTime(1.5, now);
+        bp.connect(main);
+
+        [1.0, 1.5, 2.0, 2.63, 3.12, 4.0].forEach((ratio, i) => {
             const osc = this.ctx.createOscillator();
-            const oscGain = this.ctx.createGain();
-            
+            const g = this.ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.value = baseFreq * ratio;
-            
-            // High harmonics decay faster than lower base frequencies
-            const oscVolume = 0.15 / (index + 1);
-            const decayTime = (isGold ? 2.5 : 1.5) / ratio;
-            
-            oscGain.gain.setValueAtTime(oscVolume, now);
-            oscGain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
-            
-            osc.connect(oscGain);
-            oscGain.connect(chimeFilter);
+            osc.frequency.value = base * ratio;
+            const vol = 0.15 / (i + 1);
+            const decay = (warm ? 2.5 : 1.5) / ratio;
+            g.gain.setValueAtTime(vol, now);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+            osc.connect(g);
+            g.connect(bp);
             osc.start(now);
-            osc.stop(now + decayTime + 0.1);
-            
-            oscs.push(osc);
+            osc.stop(now + decay + 0.1);
         });
-        
-        mainGain.gain.setValueAtTime(isGold ? 0.35 : 0.25, now);
-        mainGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.0);
+        main.gain.setValueAtTime(warm ? 0.35 : 0.25, now);
+        main.gain.exponentialRampToValueAtTime(0.0001, now + 3.0);
     }
-    
-    // Synthesise a majestic celestial choir swell sweep
+
     playChoirSwell() {
         if (!this.isActive || !this.ctx) return;
-        
         const now = this.ctx.currentTime;
-        const mainGain = this.ctx.createGain();
-        mainGain.connect(this.masterGain);
-        
-        // Choir frequencies (Golden Ratio harmonics)
-        const baseFreq = 270; // Root C#4
-        const ratios = [1.0, 1.25, 1.5, 2.0, 2.5, 3.0];
-        
-        // Lowpass filter with sweeping resonance for vocal "aah" sound
-        const choirFilter = this.ctx.createBiquadFilter();
-        choirFilter.type = 'lowpass';
-        choirFilter.frequency.setValueAtTime(150, now);
-        choirFilter.frequency.exponentialRampToValueAtTime(1200, now + 1.8);
-        choirFilter.frequency.exponentialRampToValueAtTime(250, now + 5.0);
-        choirFilter.Q.setValueAtTime(5, now);
-        choirFilter.connect(mainGain);
-        
-        ratios.forEach((ratio, i) => {
+        const main = this.ctx.createGain();
+        main.connect(this.masterGain);
+        const f = this.ctx.createBiquadFilter();
+        f.type = 'lowpass';
+        f.frequency.setValueAtTime(150, now);
+        f.frequency.exponentialRampToValueAtTime(1200, now + 1.8);
+        f.frequency.exponentialRampToValueAtTime(250, now + 5.0);
+        f.Q.setValueAtTime(5, now);
+        f.connect(main);
+        const base = 270;
+        [1.0, 1.25, 1.5, 2.0, 2.5, 3.0].forEach((r, i) => {
             const osc = this.ctx.createOscillator();
-            const oscGain = this.ctx.createGain();
-            
-            // Blend triangle and sawtooth for warmth & reediness
+            const g = this.ctx.createGain();
             osc.type = i % 2 === 0 ? 'triangle' : 'sawtooth';
-            osc.frequency.setValueAtTime(baseFreq * ratio + (Math.random() - 0.5) * 2.5, now);
-            
-            oscGain.gain.setValueAtTime(0, now);
-            oscGain.gain.linearRampToValueAtTime(0.07, now + 1.5); // slow swell
-            oscGain.gain.exponentialRampToValueAtTime(0.0001, now + 5.0);
-            
-            osc.connect(oscGain);
-            oscGain.connect(choirFilter);
+            osc.frequency.setValueAtTime(base * r + (Math.random() - 0.5) * 2.5, now);
+            g.gain.setValueAtTime(0, now);
+            g.gain.linearRampToValueAtTime(0.07, now + 1.5);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + 5.0);
+            osc.connect(g);
+            g.connect(f);
             osc.start(now);
             osc.stop(now + 5.5);
         });
-        
-        mainGain.gain.setValueAtTime(0, now);
-        mainGain.gain.linearRampToValueAtTime(0.4, now + 1.0);
-        mainGain.gain.exponentialRampToValueAtTime(0.0001, now + 5.0);
-        
-        // Wet send to delays
+        main.gain.setValueAtTime(0, now);
+        main.gain.linearRampToValueAtTime(0.4, now + 1.0);
+        main.gain.exponentialRampToValueAtTime(0.0001, now + 5.0);
         if (this.delayNode) {
-            const sendGain = this.ctx.createGain();
-            sendGain.gain.setValueAtTime(0.4, now);
-            mainGain.connect(sendGain);
-            sendGain.connect(this.delayNode);
+            const send = this.ctx.createGain();
+            send.gain.setValueAtTime(0.4, now);
+            main.connect(send);
+            send.connect(this.delayNode);
         }
     }
-    
-    // Synthesise a gentle, alchemical triple-chime callback sequence
-    playCallbackChimeSequence() {
+
+    // Three rising bells and a swell, played when the work completes
+    playCompletion() {
         if (!this.isActive || !this.ctx) return;
-        
-        // 1. Play first gentle bell chime (528Hz - Transformation & DNA Repair)
-        this.playChime(528);
-        
-        // 2. Play second chime (639Hz - Harmonising Connection) after 1.2s
-        setTimeout(() => {
-            if (this.isActive && this.ctx) {
-                this.playChime(639);
-            }
-        }, 1200);
-        
-        // 3. Play third chime (852Hz - Spiritual awareness) after 2.4s
-        setTimeout(() => {
-            if (this.isActive && this.ctx) {
-                this.playChime(852);
-                // Also overlay a soft celestial choir swell to anchor the transition
-                this.playChoirSwell();
-            }
-        }, 2400);
+        const t = this.tunings[this.activeTuning].chime;
+        this.playChime(t);
+        setTimeout(() => { if (this.isActive) this.playChime(t * 1.25); }, 1200);
+        setTimeout(() => { if (this.isActive) { this.playChime(t * 1.5); this.playChoirSwell(); } }, 2400);
     }
-    
-    // Heartbeat loop scheduler (synchronised to states)
+
+    /* ---------------- heartbeat ---------------- */
+
     scheduleNextHeartbeat() {
         if (!this.isActive || !this.ctx) return;
-        
-        const now = this.ctx.currentTime;
-        this.playHeartbeatAt(now);
-        
-        let interval = this.state === 'zhenren' ? 1000 : 630; // 1.0s (60 bpm) for Zhenren, 0.63s (95 bpm) for Trickster
-        if (this.meditationModeActive) {
-            interval = 1450; // Deep meditation breathing state (41 bpm)
-        }
-        
-        this.heartbeatTimer = setTimeout(() => {
-            this.scheduleNextHeartbeat();
-        }, interval);
+        if (this.heartbeatTimer) clearTimeout(this.heartbeatTimer);
+        this.playHeartbeatAt(this.ctx.currentTime);
+        // 60 bpm ambient, slowing to 41 bpm as the opus completes
+        const interval = 1000 + this.opus * 450;
+        this.heartbeatTimer = setTimeout(() => this.scheduleNextHeartbeat(), interval);
     }
-    
-    // Double-thump "lub-dub" procedural alchemical heart thuds
+
     playHeartbeatAt(time) {
         if (!this.isActive || !this.ctx) return;
-        
-        // 1. "Lub" Thump (80Hz down to 10Hz sweep)
-        this.synthThump(time, 80, 10, 0.08, 0.55);
-        
-        // 2. "Dub" Thump (60Hz down to 10Hz sweep, 0.15s later)
-        this.synthThump(time + 0.15, 60, 10, 0.12, 0.45);
+        const v = 0.55 * (1.0 - this.opus * 0.5);
+        this.synthThump(time, 80, 10, 0.08, v);
+        this.synthThump(time + 0.15, 60, 10, 0.12, v * 0.8);
     }
-    
-    // Low frequency pitch swept thump oscillator synthesis
-    synthThump(startTime, startFreq, endFreq, duration, volume) {
+
+    synthThump(start, f0, f1, dur, vol) {
         const osc = this.ctx.createOscillator();
-        const gainNode = this.ctx.createGain();
-        
+        const g = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(startFreq, startTime);
-        osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration);
-        
-        gainNode.gain.setValueAtTime(0.001, startTime);
-        gainNode.gain.linearRampToValueAtTime(volume, startTime + 0.015);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-        
-        const lowpass = this.ctx.createBiquadFilter();
-        lowpass.type = 'lowpass';
-        lowpass.frequency.setValueAtTime(100, startTime);
-        
-        osc.connect(gainNode);
-        gainNode.connect(lowpass);
-        lowpass.connect(this.masterGain);
-        
-        osc.start(startTime);
-        osc.stop(startTime + duration + 0.05);
+        osc.frequency.setValueAtTime(f0, start);
+        osc.frequency.exponentialRampToValueAtTime(f1, start + dur);
+        g.gain.setValueAtTime(0.001, start);
+        g.gain.linearRampToValueAtTime(vol, start + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.001, start + dur);
+        const lp = this.ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(100, start);
+        osc.connect(g);
+        g.connect(lp);
+        lp.connect(this.masterGain);
+        osc.start(start);
+        osc.stop(start + dur + 0.05);
     }
 
-    toggleJourneyDrumming(active) {
-        this.journeyDrummingActive = active;
-        if (active && (!this.isActive || !this.ctx)) {
-            // Automatically initialise the master audio context
-            this.toggle();
-        } else {
-            if (active) {
-                this.startJourneyDrummingLoop();
-            } else {
-                this.stopJourneyDrummingLoop();
-            }
-        }
-    }
+    /* ---------------- bellows (frame drum) ---------------- */
 
-    startJourneyDrummingLoop() {
-        this.stopJourneyDrummingLoop();
-        this.drumBeatIndex = 0;
-        const scheduleAheadTime = 0.12;
-        const lookAheadInterval = 25.0;
-        this.nextNoteTime = this.ctx.currentTime + 0.02;
-        
-        const scheduler = () => {
-            while (this.nextNoteTime < this.ctx.currentTime + scheduleAheadTime) {
-                this.scheduleDrumNote(this.drumBeatIndex, this.nextNoteTime);
-                this.advanceDrumNote();
+    startBellows() {
+        this.stopBellows();
+        if (!this.ctx) return;
+        this.bellowsStep = 0;
+        this.nextNoteTime = this.ctx.currentTime + 0.05;
+        const ahead = 0.12;
+        const tick = () => {
+            while (this.nextNoteTime < this.ctx.currentTime + ahead) {
+                this.scheduleBellowsStep(this.bellowsStep, this.nextNoteTime);
+                const stepDur = (60.0 / this.bellowsTempo) / 4;
+                this.nextNoteTime += stepDur;
+                this.bellowsStep = (this.bellowsStep + 1) % 8;
             }
-            this.journeyDrummingTimer = setTimeout(scheduler, lookAheadInterval);
+            this.bellowsTimer = setTimeout(tick, 25);
         };
-        scheduler();
+        tick();
     }
 
-    stopJourneyDrummingLoop() {
-        if (this.journeyDrummingTimer) {
-            clearTimeout(this.journeyDrummingTimer);
-            this.journeyDrummingTimer = null;
+    stopBellows() {
+        if (this.bellowsTimer) { clearTimeout(this.bellowsTimer); this.bellowsTimer = null; }
+    }
+
+    scheduleBellowsStep(step, time) {
+        if (!this.isActive || !this.ctx || this.bellowsGainValue <= 0.001) return;
+        let play = false, vel = 1.0;
+        if (this.bellowsPattern === 'pulse') {
+            if (step === 0 || step === 4) { play = true; vel = step === 0 ? 1.0 : 0.75; }
+        } else if (this.bellowsPattern === 'heartbeat') {
+            if ([0, 3, 4, 7].includes(step)) { play = true; vel = (step === 0 || step === 4) ? 1.0 : 0.6; }
+        } else if (this.bellowsPattern === 'roll') {
+            if ([0, 2, 3, 4, 6, 7].includes(step)) { play = true; vel = (step === 0 || step === 4) ? 0.9 : 0.5; }
         }
+        if (play) this.playDrumHit(time, vel * this.bellowsGainValue);
     }
 
-    advanceDrumNote() {
-        const secondsPerBeat = 60.0 / this.drumTempo;
-        const stepDuration = secondsPerBeat / 4; // 16th note steps
-        this.nextNoteTime += stepDuration;
-        this.drumBeatIndex = (this.drumBeatIndex + 1) % 8;
-    }
-
-    scheduleDrumNote(step, time) {
-        if (!this.isActive || !this.ctx) return;
-        
-        let shouldPlay = false;
-        let velocity = 1.0;
-        
-        if (this.journeyDrummingPattern === 'shamanic') {
-            if (step === 0 || step === 4) {
-                shouldPlay = true;
-                velocity = step === 0 ? 1.0 : 0.75;
-            }
-        } else if (this.journeyDrummingPattern === 'dreamwalk') {
-            if (step === 0 || step === 3 || step === 4 || step === 7) {
-                shouldPlay = true;
-                velocity = (step === 0 || step === 4) ? 1.0 : 0.6;
-            }
-        } else if (this.journeyDrummingPattern === 'tranceflow') {
-            if (step === 0 || step === 2 || step === 3 || step === 4 || step === 6 || step === 7) {
-                shouldPlay = true;
-                velocity = (step === 0 || step === 4) ? 0.9 : 0.5;
-            }
-        } else if (this.journeyDrummingPattern === 'thetajourney') {
-            // Rapid double-strike heartbeat: 0 (heavy), 1 (soft), 4 (medium), 5 (soft)
-            if (step === 0 || step === 1 || step === 4 || step === 5) {
-                shouldPlay = true;
-                if (step === 0) velocity = 1.0;
-                else if (step === 1) velocity = 0.45;
-                else if (step === 4) velocity = 0.8;
-                else if (step === 5) velocity = 0.35;
-            }
-        }
-        
-        if (shouldPlay) {
-            let playTime = time;
-            if (this.state === 'trickster') {
-                playTime += (Math.random() - 0.5) * 0.015;
-            }
-            
-            const pitchFactor = 0.85 + (this.speed * 0.15);
-            this.playJourneyDrumHit(playTime, velocity, pitchFactor);
-        }
-    }
-
-    playJourneyDrumHit(time, velocity = 1.0, pitchFactor = 1.0) {
+    playDrumHit(time, velocity = 1.0) {
         if (!this.ctx || !this.isActive) return;
         const now = time || this.ctx.currentTime;
-        const drumGain = this.ctx.createGain();
-        drumGain.connect(this.masterGain);
-        
-        const drumFilter = this.ctx.createBiquadFilter();
-        drumFilter.type = 'lowpass';
-        drumFilter.frequency.setValueAtTime(240 * pitchFactor, now); // Raised from 140 to 240 to let transients pass
-        drumFilter.Q.setValueAtTime(1.5, now);
-        drumFilter.connect(drumGain);
+        const out = this.ctx.createGain();
+        out.connect(this.masterGain);
+        const lp = this.ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(240, now);
+        lp.Q.setValueAtTime(1.5, now);
+        lp.connect(out);
 
-        // 1. Deep Bass Body Sweep
-        const bassOsc = this.ctx.createOscillator();
-        const bassGain = this.ctx.createGain();
-        bassOsc.type = 'sine';
-        bassOsc.frequency.setValueAtTime(100 * pitchFactor, now);
-        bassOsc.frequency.exponentialRampToValueAtTime(25 * pitchFactor, now + 0.42);
-        bassGain.gain.setValueAtTime(0, now);
-        bassGain.gain.linearRampToValueAtTime(1.5 * velocity, now + 0.003); // Raised from 0.7 to 1.5
-        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
-        bassOsc.connect(bassGain);
-        bassGain.connect(drumFilter);
-        bassOsc.start(now);
-        bassOsc.stop(now + 0.45);
+        const body = this.ctx.createOscillator();
+        const bodyG = this.ctx.createGain();
+        body.type = 'sine';
+        body.frequency.setValueAtTime(100, now);
+        body.frequency.exponentialRampToValueAtTime(25, now + 0.42);
+        bodyG.gain.setValueAtTime(0, now);
+        bodyG.gain.linearRampToValueAtTime(1.5 * velocity, now + 0.003);
+        bodyG.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+        body.connect(bodyG);
+        bodyG.connect(lp);
+        body.start(now);
+        body.stop(now + 0.45);
 
-        // 2. Transient Click (Skin Strike)
-        const clickOsc = this.ctx.createOscillator();
-        const clickGain = this.ctx.createGain();
-        clickOsc.type = 'triangle';
-        clickOsc.frequency.setValueAtTime(320 * pitchFactor, now); // Raised from 280 to 320 for snap
-        clickOsc.frequency.exponentialRampToValueAtTime(90 * pitchFactor, now + 0.015);
-        clickGain.gain.setValueAtTime(0, now);
-        clickGain.gain.linearRampToValueAtTime(0.9 * velocity, now + 0.001); // Raised from 0.35 to 0.9
-        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-        clickOsc.connect(clickGain);
-        clickGain.connect(drumFilter);
-        clickOsc.start(now);
-        clickOsc.stop(now + 0.02);
+        const skin = this.ctx.createOscillator();
+        const skinG = this.ctx.createGain();
+        skin.type = 'triangle';
+        skin.frequency.setValueAtTime(320, now);
+        skin.frequency.exponentialRampToValueAtTime(90, now + 0.015);
+        skinG.gain.setValueAtTime(0, now);
+        skinG.gain.linearRampToValueAtTime(0.9 * velocity, now + 0.001);
+        skinG.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
+        skin.connect(skinG);
+        skinG.connect(lp);
+        skin.start(now);
+        skin.stop(now + 0.02);
 
         if (this.delayNode) {
-            const sendGain = this.ctx.createGain();
-            sendGain.gain.setValueAtTime(0.24 * velocity, now); // Raised from 0.18
-            drumGain.connect(sendGain);
-            sendGain.connect(this.delayNode);
+            const send = this.ctx.createGain();
+            send.gain.setValueAtTime(0.24 * velocity, now);
+            out.connect(send);
+            send.connect(this.delayNode);
         }
-        
-        drumGain.gain.setValueAtTime(1.2, now); // Raised overall drum gain slightly
-        drumGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-
-        // Visual feedback on drum hit
-        setTimeout(() => {
-            const card = document.getElementById('drumming-card');
-            if (card) {
-                card.classList.add('drum-flash');
-                setTimeout(() => card.classList.remove('drum-flash'), 100);
-            }
-            
-            // Also flash the active pattern button in sympathy!
-            const activeBtn = document.querySelector('.drumming-pattern-btn.active');
-            if (activeBtn) {
-                activeBtn.classList.add('btn-flash');
-                setTimeout(() => activeBtn.classList.remove('btn-flash'), 100);
-            }
-        }, Math.max(0, (now - this.ctx.currentTime) * 1000));
-    }
-
-    setJourneyDrummingPattern(pattern) {
-        this.journeyDrummingPattern = pattern;
-        const descEl = document.getElementById('drumming-description');
-        if (descEl) {
-            if (pattern === 'shamanic') {
-                this.drumTempo = 90;
-                descEl.textContent = 'SHAMANIC PULSE: Steady, organic frame drum hits designed to ground the nervous system and induce a trance state.';
-                descEl.style.borderLeftColor = 'var(--color-amber)';
-            } else if (pattern === 'dreamwalk') {
-                this.drumTempo = 85;
-                descEl.textContent = 'DREAM WALK HEARTBEAT: Syncopated, slow double-beats that emulate the spiritual rhythmic heartbeat of the deep psyche.';
-                descEl.style.borderLeftColor = 'var(--color-gold)';
-            } else if (pattern === 'tranceflow') {
-                this.drumTempo = 95;
-                descEl.textContent = 'TRANCE FLOW ROLLS: Continuous, gentle polyrhythmic thuds that swirl the auditory cortex and induce deep focus.';
-                descEl.style.borderLeftColor = 'var(--color-emerald)';
-            } else if (pattern === 'thetajourney') {
-                this.drumTempo = 210;
-                descEl.textContent = 'THETA GATEWAY DRUM: A rapid, driving double-beat thud (210 BPM) aligned to the Theta brainwave frequency (4-7Hz) to induce deep astral journeys and trance states.';
-                descEl.style.borderLeftColor = 'var(--color-violet)';
-            }
-        }
-        
-        // Automatically check and activate the drumming layer toggle
-        const drummingToggle = document.getElementById('drumming-toggle');
-        if (drummingToggle && !drummingToggle.checked) {
-            drummingToggle.checked = true;
-        }
-        this.journeyDrummingActive = true;
-        
-        if (!this.isActive || !this.ctx) {
-            // Automatically initialise the master audio context
-            this.toggle();
-        } else {
-            // Ensure loop is running and play a preview hit
-            this.startJourneyDrummingLoop();
-            this.playJourneyDrumHit(this.ctx.currentTime, 0.8, 1.0);
-        }
+        out.gain.setValueAtTime(1.2, now);
+        out.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
     }
 }
 
-// Bind to window for global access
 window.AlchemicalAudio = new AlchemicalAudioEngine();
-
-document.getElementById('audio-toggle').addEventListener('click', () => {
-    window.AlchemicalAudio.toggle();
-});
-
-const floatToggle = document.getElementById('floating-audio-toggle');
-if (floatToggle) {
-    floatToggle.addEventListener('click', () => {
-        window.AlchemicalAudio.toggle();
-    });
-}

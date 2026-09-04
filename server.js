@@ -15,12 +15,14 @@ const MIME_TYPES = {
     '.svg': 'image/svg+xml',
     '.json': 'application/json',
     '.md': 'text/markdown',
-    '.ico': 'image/x-icon'
+    '.ico': 'image/x-icon',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff'
 };
 
 const server = http.createServer((req, res) => {
-    // Decode URI to handle spaces in filenames
-    const decodedUrl = decodeURIComponent(req.url);
+    // Strip query string, decode URI to handle spaces in filenames
+    const decodedUrl = decodeURIComponent(req.url.split('?')[0]);
     let filePath = path.join(PUBLIC_DIR, decodedUrl === '/' ? 'index.html' : decodedUrl);
     
     // Safety check to prevent directory traversal
