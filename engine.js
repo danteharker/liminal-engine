@@ -1289,8 +1289,15 @@ class Installation {
             camera: true,
             visitorChoice: true,
             fanMode: false,
-            pixelRatio: 2
+            pixelRatio: 2,
+            settingsVersion: 2
         }, this.loadSettings());
+        // Migrate older installs onto the narrative defaults once
+        if ((this.settings.settingsVersion || 0) < 2) {
+            this.settings.bellowsPattern = 'shamanic';
+            this.settings.durationSeconds = 90;
+            this.settings.settingsVersion = 2;
+        }
 
         // The visitor's choices for this sitting. They start from the curator's defaults
         // and go back to them when the piece returns to attract.
