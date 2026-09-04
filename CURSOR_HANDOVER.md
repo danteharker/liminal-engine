@@ -25,6 +25,7 @@ alchemical-engine-v2/
 ├── audio.js                     # Generative Web Audio API synthesizer & sound engine (~875 lines)
 ├── style.css                    # Luxury dark alchemical glassmorphic styling (~2,620 lines)
 ├── three.min.js                 # Local Three.js r128 bundle (603 KB) for 100% offline museum reliability
+├── fonts/                       # Cinzel, Cinzel Decorative & Outfit (.woff2) + fonts.css — no Google Fonts CDN
 ├── server.js                    # Zero-dependency local Node.js HTTP server (port 8080)
 ├── run.bat                      # 1-click Windows startup script
 ├── CURATORIAL_STATEMENT.md      # Museum catalogue essay, artist statement & wall plaque copy
@@ -89,6 +90,8 @@ Before this handover, the following major fixes were implemented and verified:
 5. **Stillness Depth Transmutation**: Explicitly wired `stillnessDepth` to `coreMesh.material.roughness` and golden color interpolation in `engine.js`.
 6. **100% Offline Readiness**: Bundled local `three.min.js` (r128) with zero CDN dependencies for offline exhibition.
 7. **100% DOM ID Integrity**: Verified that all `getElementById` calls in JavaScript exist in `index.html`.
+8. **Local Typefaces (Cursor, Sep 2026)**: Replaced the Google Fonts CDN links with bundled `.woff2` files in `fonts/` and `fonts/fonts.css`. Previously, an offline gallery would have fallen back to system serif fonts for the entire UI and the astrolabe ring engravings. Verified in headless Chrome: all three families load from disk, zero external requests.
+9. **Version Control**: Repository initialised and pushed to GitHub (`danteharker/liminal-engine`, public, `main` branch).
 
 ---
 
