@@ -15,9 +15,9 @@ When you move, the metal ripples and stays black. When you stop, it settles. Ove
 
 I made it because I could not be still in front of a screen. Every screen I own wants something from me. I wanted to build one that only responds to nothing.
 
-The sound is made live from six tones and a frame drum. The drum is the bellows of the furnace; it slows as the work completes and falls silent at gold. The rings chime as they turn, on harmonics of whichever tone the curator has chosen. There is no recording anywhere in the piece.
+Before you sit you choose one of six tones, each tuned to one of the alchemists' planets. It colours the room and sets the sound, which is made live from that tone and a frame drum. The drum is the bellows of the furnace; it slows as the work completes and falls silent at gold. Nothing is pre-recorded.
 
-When the mirror fades, one question appears: what did you notice in the space between thoughts? If you answer, your sentence is engraved on the outer ring for the next person. The rings fill up with strangers' sentences over the course of a show.
+When the mirror fades, one question appears: what did you notice in the space between thoughts? If you answer, your sentence is engraved on the outer ring for the next person. The rings fill with strangers' sentences over a show.
 
 It is a machine for practising a very old thing.
 
@@ -55,6 +55,6 @@ The wall text is built into the piece (Shift + P) and reads:
 >
 > When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four stages the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you, and the room you are sitting in.
 >
-> The sound is made live from six tones, tuned by the curator, and a frame drum that slows as the work completes. There is no recording.
+> Before you sit, you choose one of six tones, each tuned to one of the alchemists' planets. The tone sets the sound and the colour of the room. The sound is made live from that tone and a frame drum that slows as the work completes. There is no recording.
 >
 > If you want to, you can leave a sentence. It is engraved on the outer ring for the next person.

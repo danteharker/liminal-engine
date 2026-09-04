@@ -23,6 +23,23 @@ const STAGES = [
     { key: 'rubedo',     label: 'Rubedo',     from: 0.75 }
 ];
 
+// The six tones a visitor can choose. Each carries a planet, its metal, and the colour the
+// room takes: `room` tints the wall, fog and air; `glow` is the halo behind the sphere.
+const TONES = [
+    { key: '396', hz: 396, planet: 'Saturn',  metal: 'Lead',        room: 0x2c3150, glow: 0x5d64a6 },
+    { key: '432', hz: 432, planet: 'Sol',     metal: 'Gold',        room: 0x4a3418, glow: 0xd9a34a },
+    { key: '528', hz: 528, planet: 'Venus',   metal: 'Copper',      room: 0x1c4a40, glow: 0x3fae8c },
+    { key: '639', hz: 639, planet: 'Jupiter', metal: 'Tin',         room: 0x1f3a6e, glow: 0x4f86e0 },
+    { key: '741', hz: 741, planet: 'Mercury', metal: 'Quicksilver', room: 0x2a4a54, glow: 0x7cc0cf },
+    { key: '852', hz: 852, planet: 'Luna',    metal: 'Silver',      room: 0x3a4150, glow: 0xb7c3d8 }
+];
+function toneFor(key) { return TONES.find(t => t.key === String(key)) || TONES[1]; }
+
+function durationWords(seconds) {
+    const map = { 60: 'one minute', 90: 'ninety seconds', 120: 'two minutes', 180: 'three minutes', 300: 'five minutes' };
+    return map[seconds] || `${Math.round(seconds)} seconds`;
+}
+
 function stageFor(p) {
     let s = STAGES[0];
     for (const st of STAGES) if (p >= st.from) s = st;
@@ -234,6 +251,19 @@ class LiminalEngine3D {
 
         this._tmpColor = new THREE.Color();
         this._tmpColor2 = new THREE.Color();
+
+        // Room palette from the chosen tone. Current values ease toward the target.
+        this.paletteRoom = linear(TONES[1].room).clone();
+        this.paletteGlow = linear(TONES[1].glow).clone();
+        this.paletteRoomTarget = this.paletteRoom.clone();
+        this.paletteGlowTarget = this.paletteGlow.clone();
+        this._roomColor = new THREE.Color();
+    }
+
+    setTone(key) {
+        const t = toneFor(key);
+        this.paletteRoomTarget.copy(linear(t.room));
+        this.paletteGlowTarget.copy(linear(t.glow));
     }
 
     init() {
@@ -266,6 +296,7 @@ class LiminalEngine3D {
         this.createParticles();
         this.createTrails();
         this.createWall();
+        this.createHalo();
         this.setupEvents();
 
         if (document.fonts && document.fonts.ready) {
@@ -702,6 +733,29 @@ class LiminalEngine3D {
         this.scene.add(this.wall);
     }
 
+    // A soft pool of the tone's colour on the wall behind the sphere, so the piece has a room
+    // and not a void. Additive, so it lifts the wall without ever going muddy.
+    createHalo() {
+        const c = document.createElement('canvas');
+        c.width = c.height = 256;
+        const x = c.getContext('2d');
+        const g = x.createRadialGradient(128, 128, 0, 128, 128, 128);
+        g.addColorStop(0.0, 'rgba(255,255,255,1)');
+        g.addColorStop(0.35, 'rgba(255,255,255,0.45)');
+        g.addColorStop(0.7, 'rgba(255,255,255,0.10)');
+        g.addColorStop(1.0, 'rgba(255,255,255,0)');
+        x.fillStyle = g;
+        x.fillRect(0, 0, 256, 256);
+        const tex = new THREE.CanvasTexture(c);
+        const mat = new THREE.MeshBasicMaterial({
+            map: tex, color: this.paletteGlow.getHex(), transparent: true, opacity: 0.3,
+            blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+        });
+        this.halo = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), mat);
+        this.halo.position.set(0, -0.4, -3.3);
+        this.scene.add(this.halo);
+    }
+
     /* ---------------- events ---------------- */
 
     setupEvents() {
@@ -762,7 +816,24 @@ class LiminalEngine3D {
         this.furnace.intensity = stageLerp([2.2, 2.0, 2.4, 2.8], p);
 
         // Fog lifts slightly as the work completes
-        this.scene.fog.density = lerp(0.075, 0.055, p);
+        this.scene.fog.density = lerp(0.075, 0.05, p);
+
+        // The room takes the colour of the chosen tone and brightens as the work completes.
+        const k = clamp01((dt || 0.016) * 1.4);
+        this.paletteRoom.lerp(this.paletteRoomTarget, k);
+        this.paletteGlow.lerp(this.paletteGlowTarget, k);
+
+        const roomLevel = stageLerp([0.55, 0.8, 1.0, 1.15], p);
+        this._roomColor.copy(this.paletteRoom).multiplyScalar(roomLevel);
+        this.wall.material.color.copy(this._roomColor);
+        this.scene.fog.color.copy(this._roomColor).multiplyScalar(0.6);
+        this.renderer.setClearColor(this.scene.fog.color);
+        this.ambient.color.copy(this.paletteRoom).multiplyScalar(0.9);
+
+        this.halo.material.color.copy(this.paletteGlow);
+        this.halo.material.opacity = stageLerp([0.22, 0.32, 0.40, 0.48], p);
+        const s = 1 + 0.04 * Math.sin(this.time * 0.6);
+        this.halo.scale.set(s, s, 1);
     }
 
     /* ---------------- quicksilver surface ---------------- */
@@ -1012,14 +1083,29 @@ class Installation {
             bellowsPattern: 'pulse',
             volume: 60,
             camera: true,
+            visitorChoice: true,
             pixelRatio: 2
         }, this.loadSettings());
+
+        // The visitor's choices for this sitting. They start from the curator's defaults
+        // and go back to them when the piece returns to attract.
+        this.sessionTuning = this.settings.tuning;
+        this.sessionBellows = this.settings.bellows;
 
         this.el = {
             attract: document.getElementById('attract'),
             attractLine: document.getElementById('attract-inscription'),
+            attractBegin: document.getElementById('attract-begin'),
+            choose: document.getElementById('choose'),
+            toneGrid: document.getElementById('tone-grid'),
+            chooseBellows: document.getElementById('choose-bellows'),
+            chooseNext: document.getElementById('choose-next'),
             intro: document.getElementById('intro'),
+            introBegin: document.getElementById('intro-begin'),
+            introCount: document.getElementById('intro-count'),
+            introDuration: document.getElementById('intro-duration'),
             hud: document.getElementById('hud'),
+            hint: document.getElementById('hud-hint'),
             stage: document.getElementById('hud-stage'),
             progress: document.getElementById('hud-progress'),
             end: document.getElementById('hud-end'),
@@ -1043,6 +1129,7 @@ class Installation {
         this.reflections = this.loadReflections();
         this.engine.setInscriptions(this.reflections.map(r => r.text));
 
+        this.buildToneGrid();
         this.applySettings();
         this.bind();
         this.rotateAttractInscription();
@@ -1071,17 +1158,73 @@ class Installation {
 
     applySettings() {
         const s = this.settings;
+        // Outside a sitting the curator's defaults are what plays and colours the room
+        if (this.state === 'attract') {
+            this.sessionTuning = s.tuning;
+            this.sessionBellows = s.bellows;
+        }
         const A = window.AlchemicalAudio;
         if (A) {
-            A.setTuning(s.tuning);
-            A.setBellowsEnabled(s.bellows);
+            A.setTuning(this.sessionTuning);
+            A.setBellowsEnabled(this.sessionBellows);
             A.setBellowsPattern(s.bellowsPattern);
             A.setMasterVolume(s.volume / 100);
         }
+        this.engine.setTone(this.sessionTuning);
         this.engine.riseSeconds = Math.max(30, s.durationSeconds * 0.55);
         this.engine.renderer.setPixelRatio(Math.min(window.devicePixelRatio, s.pixelRatio));
         this.sensor.enabled = !!s.camera;
+        if (this.el.introDuration) this.el.introDuration.textContent = durationWords(s.durationSeconds);
         this.saveSettings();
+        this.syncChoiceUI();
+    }
+
+    /* ---------------- the choice screen ---------------- */
+
+    buildToneGrid() {
+        const grid = this.el.toneGrid;
+        if (!grid) return;
+        grid.innerHTML = '';
+        TONES.forEach(t => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'tone';
+            b.setAttribute('role', 'radio');
+            b.setAttribute('aria-checked', 'false');
+            b.dataset.key = t.key;
+            b.innerHTML = `<span class="swatch" style="background:#${t.glow.toString(16).padStart(6, '0')}"></span>` +
+                `<span class="tone-hz">${t.hz} Hz</span>` +
+                `<span class="tone-name">${t.planet} · ${t.metal}</span>`;
+            b.addEventListener('click', () => this.chooseTone(t.key));
+            grid.appendChild(b);
+        });
+    }
+
+    chooseTone(key) {
+        this.sessionTuning = String(key);
+        const A = window.AlchemicalAudio;
+        if (A) { A.setTuning(this.sessionTuning); A.playChime('gold'); }
+        this.engine.setTone(this.sessionTuning);
+        this.syncChoiceUI();
+    }
+
+    toggleBellows() {
+        this.sessionBellows = !this.sessionBellows;
+        const A = window.AlchemicalAudio;
+        if (A) A.setBellowsEnabled(this.sessionBellows);
+        this.syncChoiceUI();
+    }
+
+    syncChoiceUI() {
+        if (this.el.toneGrid) {
+            this.el.toneGrid.querySelectorAll('.tone').forEach(b =>
+                b.setAttribute('aria-checked', b.dataset.key === this.sessionTuning ? 'true' : 'false'));
+        }
+        const cb = this.el.chooseBellows;
+        if (cb) {
+            cb.setAttribute('aria-pressed', this.sessionBellows ? 'true' : 'false');
+            cb.lastChild.textContent = this.sessionBellows ? 'Frame drum: on' : 'Frame drum: off';
+        }
     }
 
     async startSensor() {
@@ -1108,21 +1251,24 @@ class Installation {
         ['pointerdown', 'pointermove', 'keydown', 'touchstart'].forEach(ev =>
             window.addEventListener(ev, activity, { passive: true }));
 
-        // Touch anywhere to begin
+        // Touch anywhere on the attract screen to begin; the button is the visible invitation
         const begin = (e) => {
             if (this.state !== 'attract') return;
-            if (e.target && e.target.closest && e.target.closest('.panel')) return;
+            if (e.target && e.target.closest && e.target.closest('.panel, .modal')) return;
             this.begin();
         };
         window.addEventListener('pointerdown', begin);
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
-            if (e.key === 'Escape') { if (this.state === 'work' || this.state === 'intro') this.endSession(false); return; }
+            if (e.key === 'Escape') { if (this.state === 'work' || this.state === 'intro' || this.state === 'choose') this.endSession(false); return; }
             if (this.state === 'attract' && (e.key === ' ' || e.key === 'Enter')) this.begin();
+            if (this.state === 'choose' && e.key === 'Enter') this.startIntro();
             if (this.state === 'intro' && (e.key === ' ' || e.key === 'Enter')) this.startWork();
         });
-        if (this.el.intro) this.el.intro.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (this.state === 'intro') this.startWork(); });
+        if (this.el.chooseBellows) this.el.chooseBellows.addEventListener('click', () => this.toggleBellows());
+        if (this.el.chooseNext) this.el.chooseNext.addEventListener('click', () => { if (this.state === 'choose') this.startIntro(); });
+        if (this.el.introBegin) this.el.introBegin.addEventListener('click', () => { if (this.state === 'intro') this.startWork(); });
         if (this.el.end) this.el.end.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (this.state === 'work') this.endSession(false); });
 
         if (this.el.reflectSave) this.el.reflectSave.addEventListener('click', () => this.saveReflection());
@@ -1150,19 +1296,44 @@ class Installation {
     begin() {
         const A = window.AlchemicalAudio;
         if (A) { A.resume(); A.playChime('gold'); }
-        this.state = 'intro';
         this.show(this.el.attract, false);
-        this.show(this.el.intro, true);
         this.engine.cameraTargetZ = 4.3;
+        this.sessionTuning = this.settings.tuning;
+        this.sessionBellows = this.settings.bellows;
+        this.syncChoiceUI();
+        if (this.settings.visitorChoice) {
+            this.state = 'choose';
+            this.show(this.el.choose, true);
+        } else {
+            this.startIntro();
+        }
+    }
+
+    startIntro() {
+        this.state = 'intro';
+        this.show(this.el.choose, false);
+        this.show(this.el.intro, true);
         clearTimeout(this._introTimer);
-        this._introTimer = setTimeout(() => { if (this.state === 'intro') this.startWork(); }, 9000);
+        clearInterval(this._introCountdown);
+        let left = 15;
+        if (this.el.introCount) this.el.introCount.textContent = String(left);
+        this._introCountdown = setInterval(() => {
+            left -= 1;
+            if (this.el.introCount) this.el.introCount.textContent = String(Math.max(0, left));
+            if (left <= 0) clearInterval(this._introCountdown);
+        }, 1000);
+        this._introTimer = setTimeout(() => { if (this.state === 'intro') this.startWork(); }, 15000);
     }
 
     startWork() {
         clearTimeout(this._introTimer);
+        clearInterval(this._introCountdown);
         this.state = 'work';
+        this.show(this.el.choose, false);
         this.show(this.el.intro, false);
         this.show(this.el.hud, true);
+        this.hintSince = 0;
+        if (this.el.hint) this.el.hint.classList.remove('is-visible');
         this.sessionStart = performance.now();
         this.sessionElapsed = 0;
         this.engine.inSession = true;
@@ -1227,16 +1398,22 @@ class Installation {
     }
 
     toAttract() {
+        clearTimeout(this._introTimer);
+        clearInterval(this._introCountdown);
         this.state = 'attract';
         this.engine.inSession = false;
         this.engine.cameraTargetZ = 5.0;
         this.show(this.el.hud, false);
+        this.show(this.el.choose, false);
         this.show(this.el.intro, false);
         this.show(this.el.ret, false);
         this.show(this.el.reflect, false);
         this.show(this.el.attract, true);
+        if (this.el.hint) this.el.hint.classList.remove('is-visible');
         const A = window.AlchemicalAudio;
         if (A) A.setSessionActive(false);
+        // Back to the curator's defaults for the next person
+        this.applySettings();
     }
 
     rotateAttractInscription() {
@@ -1280,17 +1457,23 @@ class Installation {
                     this.el.stage.classList.add('is-visible');
                 }
             }
+            // A gentle nudge if the visitor has been moving for a few seconds
+            if (this.el.hint) {
+                if (this.sensor.motion > 0.3) {
+                    if (!this.hintSince) this.hintSince = now;
+                    if (now - this.hintSince > 2500 && this.sessionElapsed > 6) this.el.hint.classList.add('is-visible');
+                } else {
+                    this.hintSince = 0;
+                    this.el.hint.classList.remove('is-visible');
+                }
+            }
             if (this.sessionElapsed >= this.settings.durationSeconds) this.endSession(true);
         } else if (this.state === 'reflect') {
             if (now > this.reflectDeadline) this.saveReflection();
-        } else if (this.state === 'intro' || this.state === 'thanks' || this.state === 'return') {
-            // timed transitions handle these
-        } else if (this.state === 'attract') {
-            // nothing to time out; the attract state is the resting state
         }
 
-        // Idle guard: if a visitor abandons mid-intro, return to attract
-        if (this.state === 'intro' && now - this.lastActivity > this.settings.idleSeconds * 1000) this.toAttract();
+        // Idle guard: if a visitor walks away from the choice screen, return to attract
+        if (this.state === 'choose' && now - this.lastActivity > this.settings.idleSeconds * 1000) this.toAttract();
     }
 }
 
@@ -1317,6 +1500,7 @@ class Curator {
             volumeVal: document.getElementById('c-volume-val'),
             mute: document.getElementById('c-mute'),
             camera: document.getElementById('c-camera'),
+            choice: document.getElementById('c-choice'),
             pixel: document.getElementById('c-pixel'),
             lock: document.getElementById('c-lock'),
             fullscreen: document.getElementById('c-fullscreen'),
@@ -1381,6 +1565,7 @@ class Curator {
             this.inst.applySettings();
             this.inst.startSensor();
         });
+        if (f.choice) f.choice.addEventListener('change', (e) => { s.visitorChoice = e.target.checked; this.inst.applySettings(); });
         if (f.pixel) f.pixel.addEventListener('change', (e) => { s.pixelRatio = parseFloat(e.target.value); this.inst.applySettings(); window.dispatchEvent(new Event('resize')); });
         if (f.lock) f.lock.addEventListener('click', () => this.applyLock(!this.locked));
         if (f.fullscreen) f.fullscreen.addEventListener('click', () => this.toggleFullscreen());
@@ -1405,6 +1590,7 @@ class Curator {
         if (f.volume) f.volume.value = String(s.volume);
         if (f.volumeVal) f.volumeVal.textContent = `${s.volume}%`;
         if (f.camera) f.camera.checked = !!s.camera;
+        if (f.choice) f.choice.checked = !!s.visitorChoice;
         if (f.pixel) f.pixel.value = String(s.pixelRatio);
     }
 

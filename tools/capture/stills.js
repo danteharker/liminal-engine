@@ -43,6 +43,8 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         Liminal.sensor.update = function () {};
         Liminal.engine.updateOpus = function () { this.opus = window.__p ?? this.opus; };
         Liminal.engine.inSession = true;
+        // Stop the installation's own timing so we can pose states freely
+        Liminal.installation.loop = function () { requestAnimationFrame(() => this.loop()); };
         window.__setMoment = (p, motion) => {
             window.__p = p;
             Liminal.sensor.motion = motion;
@@ -71,44 +73,56 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
         document.getElementById('hud-progress').style.transform = `scaleX(${frac})`;
     }, label, frac);
 
-    // 1. Attract — resting state, black quicksilver, "Be still."
+    // 1. Attract — resting state, black quicksilver, title and button. Default tone (Sol).
     await page.evaluate(() => { window.__setMoment(0.22, 0.15); Liminal.engine.cameraTargetZ = 5.0; Liminal.engine.camera.position.z = 5.0; });
     await showOnly(['attract']);
     await sleep(2500);
-    await shot('01-attract-be-still');
+    await shot('01-attract');
 
     // Sessions: camera in
     await page.evaluate(() => { Liminal.engine.cameraTargetZ = 4.3; Liminal.engine.camera.position.z = 4.3; });
 
-    // 2. Nigredo — agitated
-    await page.evaluate(() => window.__setMoment(0.06, 0.55));
+    // 2. Choose your tone — Venus selected, room turning verdigris
+    await page.evaluate(() => { Liminal.installation.state = 'choose'; Liminal.installation.chooseTone('528'); });
+    await showOnly(['choose']);
+    await sleep(3000);
+    await shot('02-choose-your-tone');
+
+    // 3. How it works
+    await showOnly(['intro']);
+    await page.evaluate(() => { document.getElementById('intro-count').textContent = '15'; });
+    await sleep(1500);
+    await shot('03-how-it-works');
+
+    // 4. Nigredo — agitated
+    await page.evaluate(() => { Liminal.installation.state = 'work'; window.__setMoment(0.06, 0.55); });
     await showOnly(['hud']); await setStage('Nigredo', 0.08);
     await sleep(1800);
-    await shot('02-nigredo');
+    await shot('04-nigredo');
 
-    // 3. Albedo — quicksilver settling
+    // 5. Albedo — quicksilver settling
     await page.evaluate(() => window.__setMoment(0.38, 0.05));
     await setStage('Albedo', 0.34);
     await sleep(1800);
-    await shot('03-albedo');
+    await shot('05-albedo');
 
-    // 4. Citrinitas
+    // 6. Citrinitas
     await page.evaluate(() => window.__setMoment(0.64, 0.0));
     await setStage('Citrinitas', 0.58);
     await sleep(1800);
-    await shot('04-citrinitas');
+    await shot('06-citrinitas');
 
-    // 5. Rubedo — gold mirror
+    // 7. Rubedo — gold mirror
     await page.evaluate(() => window.__setMoment(1.0, 0.0));
     await setStage('Rubedo', 0.92);
     await sleep(2200);
-    await shot('05-rubedo');
+    await shot('07-rubedo');
 
-    // 6. The question
+    // 8. The question
     await showOnly(['reflect']);
     await page.evaluate(() => { document.getElementById('reflect-input').blur(); });
     await sleep(1500);
-    await shot('06-the-question');
+    await shot('08-the-question');
 
     await browser.close();
 })().catch(e => { console.error(e); process.exit(1); });

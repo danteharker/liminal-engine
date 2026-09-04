@@ -26,25 +26,52 @@
         <span class="mark-title">Liminal Engine</span>
     </header>
 
-    <!-- Attract: the resting state. The scene is the artwork; this is one line. -->
+    <!-- Attract: the resting state. Title, one sentence, one clear button. -->
     <section id="attract" class="layer is-visible" aria-hidden="false">
         <p id="attract-inscription" class="inscription"></p>
-        <h1 class="attract-line">Be still.</h1>
+        <div class="attract-block">
+            <h1 class="attract-title">Liminal Engine</h1>
+            <p class="attract-sub">A sphere of quicksilver that turns to gold when you are still.</p>
+            <button id="attract-begin" type="button" class="big-btn">Touch to begin</button>
+        </div>
         <p id="sensor-note" class="note"></p>
     </section>
 
-    <!-- Intro: a single instruction, then the work begins -->
-    <section id="intro" class="layer" aria-hidden="true">
-        <div class="intro-text">
-            <p>Sit. Rest your hands.</p>
-            <p>The quicksilver is listening to your body. When you are still, it will settle, and turn to gold.</p>
-            <p class="small">Two minutes. Touch to begin sooner.</p>
+    <!-- Choose: the visitor picks a tone; the room takes its colour -->
+    <section id="choose" class="layer" aria-hidden="true">
+        <div class="choose-block">
+            <p class="step-label">Step 1 of 2</p>
+            <h2 class="choose-title">Choose your tone</h2>
+            <p class="choose-sub">Each tone is tuned to one of the alchemists' planets. It sets the sound, and the colour of the room.</p>
+            <div id="tone-grid" class="tone-grid" role="radiogroup" aria-label="Tone"></div>
+            <div class="choose-row">
+                <button id="choose-bellows" type="button" class="toggle-btn" aria-pressed="true">
+                    <span class="toggle-mark" aria-hidden="true"></span>Frame drum: on
+                </button>
+                <button id="choose-next" type="button" class="big-btn">Next</button>
+            </div>
         </div>
     </section>
 
-    <!-- HUD during the work: stage name, one hairline, a way out -->
+    <!-- Intro: what to do, in three lines, then begin -->
+    <section id="intro" class="layer" aria-hidden="true">
+        <div class="intro-block">
+            <p class="step-label">Step 2 of 2</p>
+            <h2 class="choose-title">How it works</h2>
+            <ol class="intro-steps">
+                <li>Sit comfortably. Rest your hands.</li>
+                <li>Look at the sphere and be as still as you can.</li>
+                <li>Stay for <span id="intro-duration">two minutes</span>. When you are still it settles and turns to gold. If you move, it darkens; be still and it returns.</li>
+            </ol>
+            <button id="intro-begin" type="button" class="big-btn">I'm ready</button>
+            <p class="small">It begins on its own in <span id="intro-count">15</span> seconds.</p>
+        </div>
+    </section>
+
+    <!-- HUD during the work: stage name, one hairline, a nudge, a way out -->
     <section id="hud" class="layer layer-passive" aria-hidden="true">
         <div id="hud-stage" class="stage"></div>
+        <p id="hud-hint" class="hint">Be still. The metal is listening.</p>
         <div class="progress-track"><div id="hud-progress" class="progress"></div></div>
         <button id="hud-end" type="button" class="quiet-btn" aria-label="End the session early">end</button>
     </section>
@@ -52,13 +79,15 @@
     <!-- Return -->
     <section id="return" class="layer" aria-hidden="true">
         <p class="return-line">Welcome back.</p>
+        <p class="return-sub">The work is complete.</p>
     </section>
 
     <!-- Reflection: one question, one field -->
     <section id="reflect" class="layer" aria-hidden="true">
         <div class="panel reflect-panel">
             <p class="question">What did you notice in the space between thoughts?</p>
-            <textarea id="reflect-input" rows="3" maxlength="240" spellcheck="false" placeholder=""></textarea>
+            <p class="question-sub">A sentence or two. It will be engraved on the outer ring for the next person.</p>
+            <textarea id="reflect-input" rows="3" maxlength="240" spellcheck="false" placeholder="Type here"></textarea>
             <div class="actions">
                 <button id="reflect-skip" type="button" class="text-btn">Leave nothing</button>
                 <button id="reflect-save" type="button" class="text-btn primary">Inscribe</button>
@@ -115,6 +144,7 @@
                 </label>
                 <label class="check"><input id="c-bellows" type="checkbox"> Bellows (frame drum)</label>
                 <label class="check"><input id="c-camera" type="checkbox"> Camera sensor</label>
+                <label class="check"><input id="c-choice" type="checkbox"> Visitor chooses the tone</label>
                 <label>Volume <span id="c-volume-val">60%</span>
                     <input id="c-volume" type="range" min="0" max="100" step="1">
                 </label>
@@ -160,7 +190,7 @@
             <div class="plaque-body">
                 <p>A sphere of quicksilver hangs inside three engraved rings. A camera watches the room. Nothing is recorded; each frame is compared with the last and thrown away. The only thing the machine keeps is how much you are moving.</p>
                 <p>When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four stages the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you, and the room you are sitting in.</p>
-                <p>The sound is made live from six tones, tuned by the curator, and a frame drum that slows as the work completes. There is no recording.</p>
+                <p>Before you sit, you choose one of six tones, each tuned to one of the alchemists' planets. The tone sets the sound and the colour of the room. The sound is made live from that tone and a frame drum that slows as the work completes. There is no recording.</p>
                 <p>If you want to, you can leave a sentence. It is engraved on the outer ring for the next person.</p>
             </div>
             <button id="plaque-close" type="button" class="text-btn">close</button>

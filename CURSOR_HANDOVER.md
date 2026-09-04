@@ -29,7 +29,7 @@ Moving makes the opus fall (14 s from 1 to 0). Being still makes it rise (≈55%
 
 ```
 alchemical-engine-v2/
-├── index.html                    Layers: attract, intro, hud, return, reflect, thanks; curator; plaque
+├── index.html                    Layers: attract, choose, intro, hud, return, reflect, thanks; curator; plaque
 ├── style.css                     Near-black / parchment / one gold. Hairlines only. ~330 lines
 ├── engine.js                     Everything below. ~1,000 lines
 ├── audio.js                      Web Audio synth. Drone, pad, chimes, bellows. ~430 lines
@@ -60,7 +60,10 @@ The film and stills were rendered headless from the running piece by `tools/capt
   - **Colour**: `outputEncoding = sRGBEncoding`. All hex colours pass through `linear()` (cached `convertSRGBToLinear`) so they come out as authored. Fog and the wall are set the same way. This is why the background is black and the gold is gold; without it everything is lifted and olive.
   - **Rings**: three tori. Canvas textures (2048×128) drawn in EB Garamond with hand letter-spacing, used as `bumpMap` and `emissiveMap`. Ring 0 carries the three most recent visitor inscriptions (italic), or "Solve et Coagula · Be still" when there are none. Ring 1: the stage names. Ring 2: V.I.T.R.I.O.L. Redrawn after `document.fonts.ready`.
   - **Chimes**: each ring chimes once per quarter turn on 0.5×, 1×, 1.5× of the active tuning's frequency, less often as the opus rises.
-- **`Installation`** — the visitor state machine: `attract → intro → work → return → reflect → thanks → attract`. Settings live in `localStorage.liminal_settings`; inscriptions in `localStorage.liminal_reflections` (`[{text, at}]`). `applySettings()` pushes to audio and engine. There is no inactivity timer during `work`; being still is the point. `intro` returns to attract after `idleSeconds` if abandoned; `reflect` auto-submits after 45 s (60 s once typing starts).
+- **`Installation`** — the visitor state machine: `attract → choose → intro → work → return → reflect → thanks → attract`. Settings live in `localStorage.liminal_settings`; inscriptions in `localStorage.liminal_reflections` (`[{text, at}]`). `applySettings()` pushes to audio and engine. There is no inactivity timer during `work`; being still is the point. `choose` returns to attract after `idleSeconds` if abandoned; `intro` starts the work itself after 15 s; `reflect` auto-submits after 45 s (60 s once typing starts).
+  - **Guidance is explicit on purpose.** Attract has a title, one sentence and a *Touch to begin* button. `choose` is "Step 1 of 2": six tone cards built from `TONES` plus a frame-drum toggle. `intro` is "Step 2 of 2": three numbered lines and *I'm ready*. During `work`, `#hud-hint` (*Be still. The metal is listening.*) fades in after 2.5 s of motion above 0.3, once the sitting is 6 s old. An earlier build had a single line of italic copy and no button; visitors did not know what to do.
+  - **Visitor choices** (`sessionTuning`, `sessionBellows`) live for one sitting and revert to the curator defaults in `toAttract()`. The curator's *Visitor chooses the tone* checkbox (`settings.visitorChoice`) skips `choose` when off.
+- **`TONES`** (top of engine.js) — the six tunings with planet, metal, and two colours: `room` (wall, fog, ambient, clear colour) and `glow` (the additive halo plane behind the sphere, `createHalo`). `engine.setTone(key)` sets targets; `applyStageVisuals` eases toward them and brightens the room through the stages. This is what gives the piece a room instead of a black void.
 - **`Curator`** — Shift + C panel, Shift + P wall text, Shift + F fullscreen, kiosk lock (blocks F5, Ctrl+R/W/U/S, context menu, drag). Live monitor of sensor source, motion meter and opus.
 
 ### audio.js

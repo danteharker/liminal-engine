@@ -12,13 +12,17 @@ Code: https://github.com/danteharker/liminal-engine
 
 | File | Use |
 | --- | --- |
-| `submission/stills/01-attract-be-still.jpg` | Resting state. The room is quiet, the quicksilver is dark. |
-| `submission/stills/02-nigredo.jpg` | Nigredo. A visitor has just sat down; the metal is agitated. |
-| `submission/stills/03-albedo.jpg` | Albedo. Settling to quicksilver. |
-| `submission/stills/04-citrinitas.jpg` | Citrinitas. Warming. |
-| `submission/stills/05-rubedo.jpg` | Rubedo. Gold, mirror, reflecting the room. |
-| `submission/stills/06-the-question.jpg` | The single question that follows a completed sitting. |
+| `submission/stills/01-attract.jpg` | Resting state. Title, one line, *Touch to begin*. Default tone, Sol. |
+| `submission/stills/02-choose-your-tone.jpg` | Step 1. Six tones; Venus chosen, the room turning verdigris. |
+| `submission/stills/03-how-it-works.jpg` | Step 2. Three lines of instruction. |
+| `submission/stills/04-nigredo.jpg` | Nigredo. A visitor has just sat down; the metal is agitated. |
+| `submission/stills/05-albedo.jpg` | Albedo. Settling to quicksilver. |
+| `submission/stills/06-citrinitas.jpg` | Citrinitas. Warming. |
+| `submission/stills/07-rubedo.jpg` | Rubedo. Gold, mirror, reflecting the room. **Lead image.** |
+| `submission/stills/08-the-question.jpg` | The single question that follows a completed sitting. |
 | `submission/liminal-engine-90s.mp4` | 90-second film of one sitting, 1920x1080, 30 fps, live audio. |
+
+If a form limits you to three images use 07, 04 and 02. Five: add 08 and 01.
 
 Stills are 2560x1440. PNG masters sit alongside the JPEGs for print if a shortlist asks.
 The film was rendered from the actual running piece with a scripted stillness curve (no camera in the render, so the sphere reflects the built-in room rather than a visitor). Say so if asked; it is the honest answer and it is fine.
@@ -35,8 +39,8 @@ Caption line for every image:
 3. Description: paste the **Short description** from section 3, then a blank line, then `Live: https://danteharker.github.io/liminal-engine/`.
 4. Audience: not made for kids. Under "Show more": turn **off** comments, turn **off** "Allow embedding" only if you want; leave it on for gallery sites.
 5. Visibility: **Unlisted**. Not Private (jurors could not open it) and not Public (keeps it out of search until the shows announce).
-6. Thumbnail: upload `05-rubedo.jpg`.
-7. Copy the link. Put it here so it is in one place: `VIDEO LINK: ____________________`
+6. Thumbnail: upload `07-rubedo.jpg`.
+7. Copy the link. Put it here so it is in one place: `VIDEO LINK: https://youtu.be/fRLpHjyL-tk`
 
 ---
 
@@ -76,7 +80,7 @@ Apply by the Google Form:
 https://docs.google.com/forms/d/e/1FAIpQLSdVrHm6oGR713gWE5AQoyYznbnN0TJPfcOjrKHTf1nJ56wGcA/viewform
 (or by email, subject line `Narcissus — Dante Harker`; the address is on the Art Jobs listing once logged in.)
 
-They ask for: artist statement, description of work, images or a video link, technical requirements and dimensions, short biography. All five are in section 3. Use the video link for the video and attach `05-rubedo.jpg`, `02-nigredo.jpg` and `06-the-question.jpg` as the three images if there is a limit.
+They ask for: artist statement, description of work, images or a video link, technical requirements and dimensions, short biography. All five are in section 3. Use the video link for the video and attach `07-rubedo.jpg`, `04-nigredo.jpg` and `08-the-question.jpg` as the three images if there is a limit.
 
 Their themes include "mirrors, reflection and doubling", "the attention economy" and "refusal and opacity in digital space". If there is a box for how the work relates to the theme, use this:
 

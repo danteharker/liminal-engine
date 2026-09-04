@@ -18,12 +18,13 @@ Daily procedure for invigilators and technical staff.
 
 ## 2. What a visitor sees
 
-- **Resting**: the sphere and rings, live, responding to movement in the room. One line at the bottom: *Be still.* Below it, sentences left by previous visitors fade in and out.
-- **Beginning**: a touch or click anywhere starts a session. One instruction appears for a few seconds, then disappears.
-- **The work**: two minutes by default. The stage name (Nigredo, Albedo, Citrinitas, Rubedo) appears quietly in the bottom-left as it changes. A hairline along the bottom edge shows time. A small *end* in the bottom-right stops early.
-- **Return**: three bells and *Welcome back.*
+- **Resting**: the sphere and rings, live, responding to movement in the room, in the colour of the curator's default tone. The title, one sentence, and a **Touch to begin** button. Above them, sentences left by previous visitors fade in and out.
+- **Step 1, Choose your tone**: six tones, each named for a planet and its metal, each with a colour. Tapping one changes the sound and the colour of the room straight away. A **Frame drum: on/off** toggle. **Next**.
+- **Step 2, How it works**: three numbered lines (sit, look, stay still for two minutes) and an **I'm ready** button. It begins on its own after 15 seconds.
+- **The work**: two minutes by default. The stage name (Nigredo, Albedo, Citrinitas, Rubedo) appears quietly in the bottom-left as it changes. A hairline along the bottom edge shows time. If the visitor keeps moving, *Be still. The metal is listening.* fades in until they stop. A small *end* in the bottom-right stops early.
+- **Return**: three bells, *Welcome back. The work is complete.*
 - **The question**: *What did you notice in the space between thoughts?* One field. *Inscribe* or *Leave nothing*. After 45 seconds of no typing it moves on by itself.
-- **Back to resting**. Anything inscribed is now engraved on the outer ring and joins the rotating line under *Be still.*
+- **Back to resting**. Anything inscribed is now engraved on the outer ring and joins the rotating line. The room returns to the curator's default tone.
 
 Nobody has to do anything for the piece to run. It rests when nobody is there and it comes back to rest on its own.
 
@@ -34,9 +35,10 @@ Nobody has to do anything for the piece to run. It rests when nobody is there an
 | Setting | What it does |
 | :--- | :--- |
 | Session | Length of the work: 1, 1.5, 2, 3 or 5 minutes (default 2) |
-| Idle return | How long an abandoned intro waits before returning to rest |
-| Tuning | The tone the piece is built on. Six choices, named by the planetary metals. Default 432 Hz · Sol |
-| Bellows | Frame drum on or off, and its pattern (Pulse, Heartbeat, Roll) |
+| Idle return | How long an abandoned choice screen waits before returning to rest |
+| Tuning | The default tone, heard and seen while the piece rests. Six choices, named by the planetary metals. Default 432 Hz · Sol |
+| Visitor chooses the tone | On by default. Turn off to skip Step 1 and run every sitting on the default tone |
+| Bellows | Frame drum on or off by default, and its pattern (Pulse, Heartbeat, Roll). Visitors can switch the drum on or off for their own sitting |
 | Volume | Room level. Mute is separate and immediate |
 | Camera sensor | Turn the camera off to run on touch and device motion only |
 | Render scale | 1.0 on modest machines, 2.0 for 4K on a capable GPU |

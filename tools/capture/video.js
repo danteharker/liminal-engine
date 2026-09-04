@@ -23,18 +23,18 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // The session, in seconds from the start of the film. Shared by both passes.
 const SCHEDULE_SRC = `
 window.__schedule = {
-    beginAt: 7, workAt: 14, duration: 60,
+    beginAt: 5, chooseAt: 8, introAt: 11, workAt: 16, duration: 60, tone: '528',
     // opus as a function of seconds into the work
     opus(s) {
         if (s < 0) return 0.25 + Math.sin(s * 0.7) * 0.03;      // attract: breathing around a quarter
-        if (s < 15) return 0.08 + (s / 15) * 0.24;              // settling to 0.32
-        if (s < 18) return 0.32 - ((s - 15) / 3) * 0.12;        // a movement: falls to 0.20
-        if (s < 48) return 0.20 + ((s - 18) / 30) * 0.80;       // the long climb to gold
+        if (s < 14) return 0.08 + (s / 14) * 0.24;              // settling to 0.32
+        if (s < 19) return 0.32 - ((s - 14) / 5) * 0.14;        // a movement: falls to 0.18, the nudge appears
+        if (s < 48) return 0.18 + ((s - 19) / 29) * 0.82;       // the long climb to gold
         return 1.0;
     },
     motion(s) {
         if (s < 0) return 0.10 + Math.max(0, Math.sin(s * 1.3)) * 0.08;
-        if (s >= 15 && s < 18) return 0.55;
+        if (s >= 14 && s < 19) return 0.55;
         if (s < 6) return 0.12 - s * 0.018;
         return 0.02;
     }
@@ -131,8 +131,10 @@ async function frames() {
     const t0 = Date.now();
     for (let i = 0; i < total; i++) {
         const filmT = i / FPS;
-        if (i === 7 * FPS) await page.evaluate(() => Liminal.installation.begin());
-        if (i === 14 * FPS) await page.evaluate(() => Liminal.installation.startWork());
+        if (i === 5 * FPS) await page.evaluate(() => Liminal.installation.begin());
+        if (i === 8 * FPS) await page.evaluate(() => Liminal.installation.chooseTone(window.__schedule.tone));
+        if (i === 11 * FPS) await page.evaluate(() => Liminal.installation.startIntro());
+        if (i === 16 * FPS) await page.evaluate(() => Liminal.installation.startWork());
         await page.evaluate((t) => window.__step(t), filmT);
         await page.screenshot({ path: path.join(dir, String(i).padStart(5, '0') + '.png'), type: 'png' });
         if (i % 150 === 0) {
@@ -178,11 +180,15 @@ async function audio() {
         setInterval(() => window.__applyMoment((performance.now() - window.__t0) / 1000), 50);
     });
 
-    await sleep(7000);
+    await sleep(5000);
     await page.evaluate(() => Liminal.installation.begin());
-    await sleep(7000);
+    await sleep(3000);
+    await page.evaluate(() => Liminal.installation.chooseTone(window.__schedule.tone));
+    await sleep(3000);
+    await page.evaluate(() => Liminal.installation.startIntro());
+    await sleep(5000);
     await page.evaluate(() => Liminal.installation.startWork());
-    await sleep((SECONDS - 14) * 1000);
+    await sleep((SECONDS - 16) * 1000);
     await page.evaluate(() => new Promise(r => { window.__rec.onstop = r; window.__rec.stop(); }));
     await sleep(800);
     await browser.close();
