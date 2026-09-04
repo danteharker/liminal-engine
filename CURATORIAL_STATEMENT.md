@@ -9,11 +9,11 @@ Live: https://danteharker.github.io/liminal-engine/
 
 ## Artist's statement (250 words)
 
-Liminal Engine is a sphere of quicksilver hanging inside three engraved rings. A camera watches the room. Nothing is recorded. Each frame is compared with the one before it and thrown away; the only thing the machine keeps is a single number, how much you are moving.
+Liminal Engine is a sphere of quicksilver hanging inside three engraved rings. A camera watches the room. Nothing is recorded. Each frame is compared with the last and thrown away; all the machine keeps is one number: how much you are moving.
 
 When you move, the metal ripples and stays black. When you stop, it settles. Over two minutes it passes through the four colours the alchemists gave the Great Work: nigredo, albedo, citrinitas, rubedo. Black, white, yellow, red-gold. At the end it is a mirror, and what it reflects is you and the room you are sitting in. You only get to see yourself when you stop trying to.
 
-I made it because I noticed I could not be still in front of a screen. Every screen I own wants something from me. I wanted to build one that only responds to nothing.
+I made it because I could not be still in front of a screen. Every screen I own wants something from me. I wanted to build one that only responds to nothing.
 
 The sound is made live from six tones and a frame drum. The drum is the bellows of the furnace; it slows as the work completes and falls silent at gold. The rings chime as they turn, on harmonics of whichever tone the curator has chosen. There is no recording anywhere in the piece.
 

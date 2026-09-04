@@ -1,0 +1,15 @@
+{
+  "name": "liminal-engine-capture",
+  "private": true,
+  "description": "Headless capture of stills and a 90 s film from the running piece.",
+  "scripts": {
+    "stills": "node stills.js out/stills",
+    "frames": "node video.js frames",
+    "audio": "node video.js audio",
+    "mux": "node mux.js"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5",
+    "puppeteer-core": "^23"
+  }
+}

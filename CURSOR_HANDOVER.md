@@ -40,14 +40,21 @@ alchemical-engine-v2/
 ├── CURATORIAL_STATEMENT.md       Statement (250 words), short description, one line, wall text
 ├── INSTALLATION_SPECIFICATIONS.md  Technical rider incl. camera placement
 ├── GALLERY_OPERATIONS_MANUAL.md  Daily procedure, curator panel, keys, troubleshooting
+├── submission/
+│   ├── SUBMISSION_PACK.md        Copy blocks, Vimeo steps, Celeste and Aesthetica walkthroughs
+│   ├── liminal-engine-90s.mp4    90 s film of one sitting, 1080p30, live audio (49 MB)
+│   └── stills/                   Six stills, 2560×1440, PNG master + JPEG
 └── CURSOR_HANDOVER.md            This file
 ```
+
+The film and stills were rendered headless from the running piece by `tools/capture/` (`puppeteer-core` + SwiftShader, no camera, so the sphere reflects the built-in room). Frames are stepped in virtual time at exactly 30 fps with `performance.now`, `requestAnimationFrame`, `setTimeout` and CSS animations all driven from one clock; the audio is recorded in a second real-time pass via `MediaRecorder` on the limiter and muxed with the bundled ffmpeg. `npm install && npm run stills / frames / audio / mux` in that folder, with `node server.js` running. Re-render once a real-webcam pass is done so the film shows a person in the mirror.
 
 ### engine.js
 
 - **`StillnessSensor`** — `startCamera()` uses `getUserMedia` (640×480, user-facing). Every frame the video is drawn to a 64×48 canvas, mean absolute luma difference against the previous frame is computed, a noise floor is learnt, and the result is mapped to `motion` (0–1) and smoothed into `stillness` (fast attack, slow release). Fallback inputs: pointer speed, `pointerdown`, `keydown`, `devicemotion`. `cameraDark` guards against a black or covered feed being read as perfect stillness. `activeSource` reports `camera` or `pointer`.
 - **`LiminalEngine3D`** — scene, lights, environment, core, rings, motes, trails, wall.
-  - **Environment / mirror**: a 512×256 equirectangular canvas of a lit studio (`drawEnvRoom`). When the camera is live, the video frame is screen-blended onto it at u = 0.75, which is the direction the front of the sphere reflects. The canvas is rendered to a `WebGLCubeRenderTarget` (256, mipmapped) via a `CubeCamera` every other frame; that cube texture is the `envMap` of the core and the rings. This is the fix for the black sphere: r128's `MeshStandardMaterial` at metalness 1 renders black without an environment.
+  - **Environment / mirror**: a 512×256 equirectangular canvas of a lit gallery (`drawEnvRoom`: mid-grey walls, a ceiling light strip, a wide lit panel at u = 0.75 with mullions, a doorway of light at u = 0.5, a floor line). When the camera is live, the video frame is screen-blended onto the panel at u = 0.75, which is the direction the front of the sphere reflects. The canvas is rendered to a `WebGLCubeRenderTarget` (256, mipmapped) via a `CubeCamera` every other frame; that cube texture is the `envMap` of the core and the rings. This is the fix for the black sphere: r128's `MeshStandardMaterial` at metalness 1 renders black without an environment.
+  - **Do not use `THREE.ShaderLib.equirect` for the cube render.** In r128 its fragment shader calls `mapTexelToLinear`, which the program only defines for materials with a `map`, so it fails to compile and the cube target silently stays black (the sphere then looks like matte plastic with two point-light dots). `setupEnvironment` uses a small self-contained equirect shader instead. If the mirror ever goes flat again, check the console for `mapTexelToLinear` first.
   - **Core**: `IcosahedronGeometry(0.72, 14)`. Duplicate vertices are merged once at init; every frame `displaceCore()` displaces the unique vertices radially (agitation = stage amplitude + motion) and computes smooth normals on the merged set, then writes both back. Do not call `computeVertexNormals()` on this geometry; it is non-indexed and would go faceted.
   - **Stages**: `applyStageVisuals(p)` interpolates colour, roughness, metalness, envMapIntensity for core and rings, and the furnace light colour. `stageLerp` / `stageLerpColor` are piecewise over the four stage values.
   - **Colour**: `outputEncoding = sRGBEncoding`. All hex colours pass through `linear()` (cached `convertSRGBToLinear`) so they come out as authored. Fog and the wall are set the same way. This is why the background is black and the gold is gold; without it everything is lifted and olive.

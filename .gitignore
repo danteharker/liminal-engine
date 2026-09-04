@@ -16,3 +16,5 @@ npm-debug.log*
 *.log
 exports/
 captures/
+tools/capture/out/
+tools/capture/package-lock.json
