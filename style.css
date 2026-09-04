@@ -218,10 +218,10 @@ body:not(.kiosk-locked) #canvas-container { cursor: default; }
 .voice {
     position: absolute;
     left: 50%;
-    bottom: 16vh;
-    top: auto;
-    transform: translateX(-50%);
-    width: min(40ch, calc(100vw - 48px));
+    top: 52%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    width: min(36ch, calc(100vw - 48px));
     margin: 0;
     text-align: center;
     font-style: italic;
@@ -231,7 +231,10 @@ body:not(.kiosk-locked) #canvas-container { cursor: default; }
     opacity: 0;
     transition: opacity 0.9s var(--ease);
     pointer-events: none;
-    text-shadow: 0 0 24px rgba(5, 5, 6, 0.95), 0 2px 12px rgba(5, 5, 6, 0.8);
+    text-shadow:
+        0 0 28px rgba(5, 5, 6, 1),
+        0 0 12px rgba(5, 5, 6, 1),
+        0 2px 8px rgba(5, 5, 6, 0.95);
 }
 .voice.is-visible { opacity: 0.95; }
 .voice.is-command {

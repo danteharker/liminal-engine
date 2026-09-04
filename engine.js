@@ -1284,19 +1284,19 @@ class Installation {
             idleSeconds: 60,
             tuning: '432',
             bellows: true,
-            bellowsPattern: 'shamanic',
+            bellowsPattern: 'heartbeat',
             volume: 60,
             camera: true,
             visitorChoice: true,
             fanMode: false,
             pixelRatio: 2,
-            settingsVersion: 3
+            settingsVersion: 4
         }, this.loadSettings());
         // Migrate older installs onto the narrative defaults
-        if ((this.settings.settingsVersion || 0) < 3) {
-            this.settings.bellowsPattern = 'shamanic';
+        if ((this.settings.settingsVersion || 0) < 4) {
+            this.settings.bellowsPattern = 'heartbeat';
             this.settings.durationSeconds = 90;
-            this.settings.settingsVersion = 3;
+            this.settings.settingsVersion = 4;
         }
 
         // The visitor's choices for this sitting. They start from the curator's defaults
