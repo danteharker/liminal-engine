@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hermetic Alchemical Engine | Solve et Coagula</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600;700&family=Outfit:wght@200;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Three.js Library (Local Bundle with CDN Fallback) -->
+    <script src="three.min.js"></script>
+    <script>if (typeof THREE === 'undefined') { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>'); }</script>
+</head>
+<body>
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container">
+    </div>
+
+    <!-- Dust overlay for physical laboratory atmosphere -->
+    <div class="dust-overlay"></div>
+
+    <!-- Attract Mode Idle Overlay (Active when idle) -->
+    <div id="attract-overlay">
+        <div class="attract-card">
+            <div class="attract-glyph">🜍</div>
+            <h1 class="attract-title">LIMINAL ENGINE</h1>
+            <p class="attract-subtitle">Sensory Star Sphere & Contemplative Art Installation</p>
+            <p class="attract-quote" style="font-family: var(--font-heading); font-size: 0.95rem; color: var(--color-quicksilver); margin-bottom: 24px; font-style: italic; letter-spacing: 0.08em;">"Find the space between your thoughts..."</p>
+            <button id="attract-wake-btn" class="attract-prompt-btn">
+                <span>✦ TOUCH SCREEN OR STAND TO BEGIN ✦</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Fixed Gallery Installation Controls in Bottom-Left -->
+    <div id="gallery-bottom-controls">
+        <button id="gallery-exit-btn" class="gallery-ctrl-btn" title="Reset / Exit to Start Screen">
+            <span>✕ EXIT TO START</span>
+        </button>
+        <button id="gallery-fullscreen-btn" class="gallery-ctrl-btn" title="Toggle Fullscreen (F11)">
+            <span id="fs-icon">⛶</span> <span id="fs-label">FULLSCREEN</span>
+        </button>
+        <button id="gallery-plaque-btn" class="gallery-ctrl-btn" title="View Museum Wall Plaque">
+            <span>🕮 WALL PLAQUE</span>
+        </button>
+        <button id="gallery-curator-btn" class="gallery-ctrl-btn curator-trigger-btn" title="Curator Settings (Shift+C)">
+            <span>⚙ CURATOR</span>
+        </button>
+    </div>
+
+    <!-- Tablet Installation Interactive Experience Wizard (Open by Default on Page Load) -->
+    <div id="gallery-tablet-modal">
+        <div class="tablet-card">
+            <!-- Step 0: START Landing Screen -->
+            <div id="tab-step-0" class="tab-step active">
+                <div class="tab-welcome-hero">
+                    <div class="tab-hero-glyph">🜍</div>
+                    <h1 class="tab-hero-title">LIMINAL ENGINE</h1>
+                    <p class="tab-hero-subtitle">Interactive Star Sphere & Meditation Art Installation</p>
+                    <p class="tab-hero-desc">Experience a quiet moment of visual stardust, binaural Solfeggio sound, and golden stillness.</p>
+
+                    <!-- Live Community Resonance Stat -->
+                    <div class="community-stat-pill" id="community-stat-pill">
+                        <span class="stat-icon">✨</span>
+                        <span id="stat-text">96% of participants report feeling Calmer & Re-Centered today</span>
+                    </div>
+                    
+                    <button id="tab-btn-start-checkin" class="tab-start-hero-btn">
+                        <span>✦ START EXPERIENCE ✦</span>
+                    </button>
+
+                    <!-- Scrolling Collective Memory Ticker -->
+                    <div class="memory-wall-container" style="margin-top: 24px;">
+                        <div class="memory-wall-header">🜎 REFLECTIONS FROM PREVIOUS VISITORS</div>
+                        <div class="memory-ticker" id="memory-ticker">
+                            <div class="memory-item"><span class="author">Adept #104:</span> "An absolute stillness... Sinking into a deep golden void."</div>
+                            <div class="memory-item"><span class="author">Visitor:</span> "Like floating in warm oil while watching the stars orbit."</div>
+                            <div class="memory-item"><span class="author">Participant:</span> "Felt the chatter in my mind completely subside after 2 minutes."</div>
+                            <div class="memory-item"><span class="author">Seeker:</span> "The chimes synchronized with my breathing. Unbelievably peaceful."</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Personal Calibration (Baking in Visual & Sound Choices) -->
+            <div id="tab-step-1" class="tab-step">
+                <div class="tab-step-badge">STEP 1 OF 3 • PERSONAL CALIBRATION</div>
+                <h2 class="tab-step-title">Choose Your Experience</h2>
+                <p class="tab-step-subtitle">Customize the visual theme, sound tuning, and length of your meditation.</p>
+                
+                <div class="tab-question-group">
+                    <label class="tab-q-label">1. Visual Theme & Atmosphere:</label>
+                    <div class="tab-options-grid" id="q1-options">
+                        <button class="tab-opt-btn active" data-val="zhenren">🌟 Golden Stillness</button>
+                        <button class="tab-opt-btn" data-val="gateway">🔮 Violet Cosmic Drift</button>
+                        <button class="tab-opt-btn" data-val="dissolution">🌌 Deep Ether Void</button>
+                    </div>
+                </div>
+
+                <div class="tab-question-group">
+                    <label class="tab-q-label">2. Sacred Sound Tuning:</label>
+                    <div class="tab-options-grid" id="q2-options">
+                        <button class="tab-opt-btn active" data-val="432">🎵 432Hz Neural Sync</button>
+                        <button class="tab-opt-btn" data-val="528">🌿 528Hz Cortical Calm</button>
+                        <button class="tab-opt-btn" data-val="741">🌌 741Hz Mind Reset</button>
+                    </div>
+                </div>
+
+                <div class="tab-question-group">
+                    <label class="tab-q-label">3. Immersion Duration:</label>
+                    <div class="tab-options-grid" id="q3-options">
+                        <button class="tab-opt-btn" data-val="60">1 Minute</button>
+                        <button class="tab-opt-btn active" data-val="120">2 Minutes</button>
+                        <button class="tab-opt-btn" data-val="180">3 Minutes</button>
+                    </div>
+                </div>
+
+                <div class="tab-btn-row">
+                    <button id="tab-btn-back-to-step0" class="tab-sec-btn">← Back</button>
+                    <button id="tab-btn-to-step2" class="tab-next-btn">CONTINUE TO PREPARATION →</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Sit Back Instructions & Breathwork Guidance -->
+            <div id="tab-step-2" class="tab-step">
+                <div class="tab-step-badge">STEP 2 OF 3 • PREPARATION</div>
+                <h2 class="tab-step-title">Sit Back & Observe</h2>
+                <div class="tab-instructions-box">
+                    <div class="tab-instruction-item">
+                        <span class="tab-icon">🫁</span>
+                        <div><strong>Rhythmic Breathwork:</strong> Take long, slow breaths in... and even longer, softer breaths out. Let your chest soften with each exhale.</div>
+                    </div>
+                    <div class="tab-instruction-item">
+                        <span class="tab-icon">👀</span>
+                        <div><strong>Soft Gaze:</strong> Rest your eyes gently on the central quicksilver core. Let your vision soften without straining.</div>
+                    </div>
+                    <div class="tab-instruction-item">
+                        <span class="tab-icon">🧘</span>
+                        <div><strong>Physical Stillness:</strong> Keep your hands still in your lap. Stillness settles the liquid core into a golden mirror.</div>
+                    </div>
+                </div>
+                <div class="tab-btn-row">
+                    <button id="tab-btn-back-to-step1" class="tab-sec-btn">← Back</button>
+                    <button id="tab-btn-start-journey" class="tab-start-btn">BEGIN IMMERSION 🜎</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Reflection & Feedback -->
+            <div id="tab-step-3" class="tab-step">
+                <div class="tab-step-badge">STEP 3 OF 3 • REFLECTION & FEEDBACK</div>
+                <h2 class="tab-step-title">Your Journey is Complete</h2>
+                <p class="tab-step-subtitle">How do you feel now? (Returning to Start Screen in <span id="tab-feedback-countdown">5</span>s)</p>
+
+                <div class="tab-feedback-ratings">
+                    <button class="tab-rating-btn active" data-rating="Calmer">🌟 Calmer</button>
+                    <button class="tab-rating-btn" data-rating="Re-centered">🧘 Re-Centered</button>
+                    <button class="tab-rating-btn" data-rating="Inspired">✨ Inspired</button>
+                    <button class="tab-rating-btn" data-rating="Rested">💤 Rested</button>
+                </div>
+
+                <div class="tab-question-group" style="margin-top: 16px;">
+                    <label class="tab-q-label">Inscribe a note into the collective memory (Optional):</label>
+                    <textarea id="tab-reflection-text" class="tab-textarea" placeholder="E.g., Felt like my mind finally paused... Sinking into peaceful gold..." maxlength="200"></textarea>
+                </div>
+
+                <button id="tab-btn-finish" class="tab-finish-btn">INSCRIBE & PASS TO NEXT VISITOR ✓</button>
+            </div>
+
+            <!-- Step 4: Thank You Message -->
+            <div id="tab-step-4" class="tab-step">
+                <div class="tab-thankyou-box">
+                    <div class="tab-glyph">🜔</div>
+                    <h2>Thank You for Participating</h2>
+                    <p>Your reflection has been recorded in the Collective Gallery Memory Wall.</p>
+                    <p class="tab-reset-notice">Resetting for the next visitor in <span id="tab-reset-countdown">6</span> seconds...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Museum Wall Plaque Modal -->
+    <div id="gallery-wall-plaque" class="plaque-modal-hidden">
+        <div class="plaque-card">
+            <button id="plaque-close-btn" class="plaque-close-btn" title="Close Wall Plaque">✕ CLOSE</button>
+            <div class="plaque-header">
+                <span class="plaque-glyph">🜍</span>
+                <h1 class="plaque-title">Liminal Engine</h1>
+                <h2 class="plaque-subtitle">SOLVE ET COAGULA (2026)</h2>
+                <div class="plaque-meta">
+                    <p><strong>Medium:</strong> Interactive generative WebGL simulation, custom Solfeggio binaural harmonic synthesizer, quicksilver fluid dynamics, real-time bio-stillness entrainment, collective phenomenological archive</p>
+                    <p><strong>Dimensions:</strong> Variable site-specific projection / Interactive pedestal</p>
+                </div>
+            </div>
+            <div class="plaque-body">
+                <p><em>Liminal Engine</em> is an interactive contemplative sanctuary suspended between cybernetics and alchemy. In an era marked by relentless sensory acceleration and algorithmic fragmentation, the work acts as an instrument of cognitive deceleration.</p>
+                <p>The concentric astrolabe rings calculate the celestial precession of the observer's mind, while the central quicksilver core responds directly to physical stillness: the more physically quiet the participant becomes, the more the turbulent fluid calms, transmuting into an unblemished golden mirror that reflects the quiet void between thoughts.</p>
+                <p>Upon completing their journey, each participant is invited to inscribe their ephemeral sensory observation into the collective memory wall, weaving individual moments of stillness into a living tapestry of shared presence.</p>
+            </div>
+            <div class="plaque-instructions">
+                <div class="plaque-inst-col">
+                    <span class="step-num">I</span>
+                    <span class="step-txt"><strong>Calibrate:</strong> Select your harmonic tuning and duration.</span>
+                </div>
+                <div class="plaque-inst-col">
+                    <span class="step-num">II</span>
+                    <span class="step-txt"><strong>Still:</strong> Rest your hands. Observe the quicksilver mirror.</span>
+                </div>
+                <div class="plaque-inst-col">
+                    <span class="step-num">III</span>
+                    <span class="step-txt"><strong>Inscribe:</strong> Gift your reflection to future travelers.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Curator / Artist Management Control Panel (Shift + C) -->
+    <div id="curator-admin-modal" class="curator-modal-hidden">
+        <div class="curator-card">
+            <div class="curator-header">
+                <div>
+                    <span class="curator-badge">GALLERY ADMINISTRATION</span>
+                    <h2>Exhibition & Curatorial Setup</h2>
+                </div>
+                <button id="curator-close-btn" class="curator-close-btn" title="Close Curator Panel">✕ CLOSE</button>
+            </div>
+
+            <div class="curator-grid">
+                <!-- Sound Calibration -->
+                <div class="curator-section">
+                    <h3>🔊 Sound System Calibration</h3>
+                    <div class="curator-ctrl-row">
+                        <label>Master Exhibition Volume:</label>
+                        <input type="range" id="curator-volume" min="0" max="100" value="50">
+                        <span id="curator-volume-val">50%</span>
+                    </div>
+                    <div class="curator-ctrl-row">
+                        <label>Hardware Audio Output:</label>
+                        <button id="curator-mute-btn" class="curator-toggle-btn">MUTE / UNMUTE</button>
+                    </div>
+                </div>
+
+                <!-- Display & Projection -->
+                <div class="curator-section">
+                    <h3>🖥️ Projection & Display Settings</h3>
+                    <div class="curator-ctrl-row">
+                        <label>Resolution Scaling:</label>
+                        <select id="curator-resolution-scale" class="curator-select">
+                            <option value="0.75">Performance (0.75x)</option>
+                            <option value="1.0" selected>Native Display (1.0x)</option>
+                            <option value="1.5">High Density (1.5x)</option>
+                            <option value="2.0">Retina / 4K UHD (2.0x)</option>
+                        </select>
+                    </div>
+                    <div class="curator-ctrl-row">
+                        <label>Ambient Void Theme:</label>
+                        <select id="curator-fog-color" class="curator-select">
+                            <option value="0x07070a" selected>Deep Ether (Obsidian)</option>
+                            <option value="0x1a1202">Twilight Alchemical Gold</option>
+                            <option value="0x110722">Violet Mysticism</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Kiosk & Inactivity Automation -->
+                <div class="curator-section">
+                    <h3>⏳ Kiosk Inactivity & Visitor Flow</h3>
+                    <div class="curator-ctrl-row">
+                        <label>Idle Attract Mode Delay:</label>
+                        <select id="curator-idle-timeout" class="curator-select">
+                            <option value="30000">30 Seconds</option>
+                            <option value="45000" selected>45 Seconds</option>
+                            <option value="60000">60 Seconds</option>
+                            <option value="120000">2 Minutes</option>
+                            <option value="0">Disabled (Never)</option>
+                        </select>
+                    </div>
+                    <div class="curator-ctrl-row">
+                        <label>Kiosk Tamper Lock:</label>
+                        <button id="curator-tamper-btn" class="curator-toggle-btn active">TAMPER LOCK ON</button>
+                    </div>
+                    <p class="curator-help-txt">Tamper Lock blocks right-click context menus, browser keyboard shortcuts (F5, Ctrl+R, Ctrl+W), and unintended pinch-to-zoom gestures.</p>
+                </div>
+
+                <!-- Collective Memory Wall Curation -->
+                <div class="curator-section">
+                    <h3>🜎 Collective Memory Archive</h3>
+                    <div class="curator-memory-actions">
+                        <button id="curator-export-reflections-btn" class="curator-btn">💾 EXPORT AS JSON</button>
+                        <button id="curator-reset-reflections-btn" class="curator-btn curator-danger-btn">↺ RESET TO DEFAULT ARCHIVE</button>
+                    </div>
+                    <div class="curator-reflections-preview" id="curator-reflections-list">
+                        <!-- Populated dynamically with delete option per item -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="curator-footer">
+                <span id="curator-sys-status">System Status: WebGL Active • Web Audio Active • 60 FPS</span>
+                <button id="curator-done-btn" class="curator-primary-btn">APPLY & RETURN TO INSTALLATION</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meditation Full-Screen Overlay & Timer -->
+    <div id="meditation-overlay" class="meditation-overlay-hidden">
+        <div class="meditation-whisper" id="meditation-whisper">Still your hand. Still your mind. Let the quicksilver mirror settle...</div>
+    </div>
+
+    <!-- Alchemical Journal Lore & Guide Modal -->
+    <div id="journal-overlay" class="journal-overlay-hidden">
+        <div class="journal-scroll">
+            <div class="journal-header">
+                <button id="journal-close-btn" class="journal-close-btn" title="Close Journal">✕ CLOSE JOURNAL</button>
+                <h2>🕮 The Alchemical Codex</h2>
+            </div>
+            <div class="journal-content">
+                <p class="journal-intro">Welcome, Adept, to the Hermetic Star Sphere. This machine modulates quicksilver and bridges celestial frequencies to align the mind with the natural geometry of the cosmos.</p>
+                
+                <div class="journal-section">
+                    <h3>🜔 THE BASICS: RESERVOIR CALIBRATION</h3>
+                    <p>To begin operations, click the pulsing <strong>ACTIVATE AURAL RESONANCE</strong> button in the top-right or at the bottom. The binaural sweep will initialize cosmic synchronization.</p>
+                </div>
+                
+                <div class="journal-section">
+                    <h3>🜁 STAR SPHERE ROTATION & CHIMES</h3>
+                    <p>Click and drag your cursor over the dark 3D laboratory canvas. This manual rotation spins the star sphere rings and synthesizes high-frequency metallic chimes aligned to sacred Solfeggio roots.</p>
+                </div>
+                
+                <div class="journal-section">
+                    <h3>🜔 HYPNOTIC STILL-GAZE ALIGNMENT</h3>
+                    <p>Enter a deep meditation by keeping your focus on the pristine, perfectly centered quicksilver core. Movement of your cursor near the core modulates the synthesizer's frequency filter and sweeps deep resonance waves, while glowing <strong>Celestial Energy Bridges</strong> fade in, fueling the core with glowing stardust particles without disrupting its calm, centered alignment.</p>
+                </div>
+                
+                <div class="journal-section">
+                    <h3>🜎 THE "SPACE BETWEEN THOUGHTS" MEDITATION</h3>
+                    <p>Select a duration (1, 3, or 5 minutes) and press <strong>BEGIN MIND FOCUS</strong>. The dashboard will collapse, dimming the lights. The goal is absolute stillness: 
+                    <br><em>If you keep your mouse and keyboard perfectly still, the quicksilver morphing waves will subside, transmuting the core into a perfect, glassy golden mirror. Moving or clicking disrupts focus and ripples the mirror.</em></p>
+                </div>
+                
+                <div class="journal-section">
+                    <h3>🜚 CABALISTIC INSCRIBED RUNES</h3>
+                    <p>Type or click shortcut tags to inscribe sacred formulae. Hovering over a shortcut translates its formula in the dashboard scroll. Runes trigger severe physical states like <strong>KETHER</strong> (solar expansion surges), <strong>YESOD</strong> (perfect horizontal stabilizing), or <strong>ECLIPSE</strong> (light-swallowing syzygy).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="meditation-timer-display" class="timer-display-hidden">
+        <svg class="timer-progress-ring" width="60" height="60">
+            <circle class="ring-track" cx="30" cy="30" r="26" />
+            <circle class="ring-progress" cx="30" cy="30" r="26" />
+        </svg>
+        <span class="timer-countdown" id="timer-countdown">03:00</span>
+        <button id="timer-visibility-btn" class="timer-vis-btn" title="Hide Clock & Audio">HIDE</button>
+        <button id="timer-audio-btn" class="timer-audio-btn" title="Quiet (Mute/Unmute)">🔇</button>
+        <button id="timer-fullscreen-btn" class="timer-fullscreen-btn" title="Toggle Full Screen">⛶ FULLSCREEN</button>
+        <button id="timer-end-btn" class="timer-end-btn" title="End Meditation">✕ END</button>
+    </div>
+
+    <!-- Floating Sound Resonator Controller in Top-Right -->
+    <button class="floating-audio-btn" id="floating-audio-toggle">
+        <span class="pulse-ring"></span>
+        <span id="floating-audio-icon">🔇</span>
+        <span id="floating-audio-label">ACTIVATE AURAL RESONANCE</span>
+    </button>
+
+    <!-- Glassmorphic Dashboard UI -->
+    <main class="dashboard" id="alchemy-dashboard">
+        <!-- Vertical Collapse Button Tab -->
+        <button id="sidebar-collapse-btn" title="Toggle Dashboard Visibility">🜂</button>
+        <header class="dashboard-header">
+            <div class="header-logo">🜍</div>
+            <div class="header-title">
+                <h1>Liminal Engine</h1>
+                <p class="subtitle">SENSORY STAR SPHERE</p>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <button id="exhibition-toggle-btn" class="exhibition-btn" title="Toggle Exhibition Kiosk Mode">EXHIBITION</button>
+                <button id="journal-toggle-btn" class="journal-btn" title="Consult Alchemical Journal">🕮</button>
+            </div>
+        </header>
+
+        <!-- Onboarding Welcoming Lore & Guide -->
+        <div class="onboarding-guide">
+            <span class="guide-symbol">🜔</span>
+            <p>Calibrate the following modulators to occupy the analytical mind. When the threshold is ready, sit back, still your hands, and look for the space between thoughts...</p>
+        </div>
+
+        <!-- Curated Neural Presets Selector -->
+        <section class="pathways-selector">
+            <span class="pathways-label">🜎 NEURAL PATHWAY PRESETS</span>
+            <div class="pathways-grid">
+                <button class="pathway-btn" id="pathway-descent" title="Evoke deep visceral grounding, decelerating mental loops.">
+                    <span class="pathway-icon">🜄</span>
+                    <span class="pathway-title">DEEP DESCENT</span>
+                </button>
+                <button class="pathway-btn" id="pathway-dissolution" title="Float in absolute weightlessness, quieting the narrative self.">
+                    <span class="pathway-icon">🜏</span>
+                    <span class="pathway-title">EGO DISSOLUTION</span>
+                </button>
+                <button class="pathway-btn" id="pathway-gateway" title="Drive consciousness to the liminal gateway of theta dream lucidity.">
+                    <span class="pathway-icon">🜎</span>
+                    <span class="pathway-title">THETA GATEWAY</span>
+                </button>
+                <button class="pathway-btn" id="pathway-drift" title="Scatter logical focus with turbulent precession and electric entropy.">
+                    <span class="pathway-icon">🜶</span>
+                    <span class="pathway-title">COGNITIVE DRIFT</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Dynamic Readings Panel -->
+        <section class="readouts-panel">
+            <div class="readout-box" title="Measures current analytical brainwaves and mental noise.">
+                <span class="readout-label">COGNITIVE LOAD</span>
+                <span class="readout-value" id="weight-readout">0 <span class="unit">%</span></span>
+            </div>
+            <div class="readout-box" title="Displays current brainwave entrainment frequency.">
+                <span class="readout-label">NEURAL SYNC</span>
+                <span class="readout-value" id="entropy-readout">10.0 <span class="unit">Hz</span></span>
+            </div>
+            <div class="readout-box" title="Calculates depth of somatic still-gaze alignment.">
+                <span class="readout-label">STILLNESS DEPTH</span>
+                <span class="readout-value" id="mercury-readout">100 <span class="unit">%</span></span>
+            </div>
+        </section>
+
+        <!-- Toggle Philosophical State -->
+        <section class="state-selector">
+            <span class="state-label">COGNITIVE STATE</span>
+            <div class="state-switch-container">
+                <button class="state-btn active" id="state-zhenren" data-state="zhenren">
+                    <span class="btn-symbol">☯</span> STILLNESS
+                </button>
+                <button class="state-btn" id="state-trickster" data-state="trickster">
+                    <span class="btn-symbol">🃏</span> DISTRACTION
+                </button>
+            </div>
+            <p class="state-desc" id="state-description">COGNITIVE STILLNESS: Harmonic coherence, slow deep breathing, and peaceful alchemical ambient drones.</p>
+        </section>
+
+        <!-- Solfeggio Sacred Tuning Selector -->
+        <section class="solfeggio-selector">
+            <span class="solfeggio-label">SACRED HARMONIC RESONANCE (SOLFEGGIO)</span>
+            <div class="solfeggio-grid">
+                <button class="solfeggio-btn active" data-freq="432" id="solf-432">
+                    <span class="freq-num">432Hz</span>
+                    <span class="freq-name">Neural Sync</span>
+                </button>
+                <button class="solfeggio-btn" data-freq="528" id="solf-528">
+                    <span class="freq-num">528Hz</span>
+                    <span class="freq-name">Cortical Calm</span>
+                </button>
+                <button class="solfeggio-btn" data-freq="396" id="solf-396">
+                    <span class="freq-num">396Hz</span>
+                    <span class="freq-name">Amygdala Calm</span>
+                </button>
+                <button class="solfeggio-btn" data-freq="639" id="solf-639">
+                    <span class="freq-num">639Hz</span>
+                    <span class="freq-name">Hemispheric</span>
+                </button>
+                <button class="solfeggio-btn" data-freq="741" id="solf-741">
+                    <span class="freq-num">741Hz</span>
+                    <span class="freq-name">Default Mode</span>
+                </button>
+                <button class="solfeggio-btn" data-freq="852" id="solf-852">
+                    <span class="freq-num">852Hz</span>
+                    <span class="freq-name">Theta State</span>
+                </button>
+            </div>
+            <p class="solfeggio-desc" id="solfeggio-description">NEURAL SYNCHRONY: Induces theta-delta coherence (64.22Hz carrier, 432Hz peak resonance) to dissolve analytical chatter and quiet self-talk.</p>
+        </section>
+
+        <!-- Astrolabe Engine Controls -->
+        <section class="controls-section">
+            <h2>🜁 COGNITIVE MODULATOR DIALS</h2>
+            
+            <div class="control-group">
+                <div class="control-header">
+                    <label for="gravity-slider">SOMATIC WEIGHT</label>
+                    <span class="control-val" id="gravity-val">0.00 float</span>
+                </div>
+                <input type="range" id="gravity-slider" min="-1" max="1" step="0.01" value="0">
+                <div class="slider-ticks">
+                    <span>Dissolve (Out-of-body)</span>
+                    <span>Weightless (Liminal)</span>
+                    <span>Heavy (Somatic)</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-header">
+                    <label for="speed-slider">TEMPORAL DRIFT (THOUGHT VELOCITY)</label>
+                    <span class="control-val" id="speed-val">1.0x</span>
+                </div>
+                <input type="range" id="speed-slider" min="0" max="4" step="0.05" value="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-header">
+                    <label for="ratio-slider">EGO RESONANCE</label>
+                    <span class="control-val" id="ratio-val">Sol (Ego) 50% / Mercury (Void) 50%</span>
+                </div>
+                <input type="range" id="ratio-slider" min="0" max="100" step="1" value="50">
+            </div>
+
+            <div class="control-group" style="margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.015); border: 1px solid var(--border-light); border-radius: 8px; padding: 10px 12px;">
+                    <label for="lights-toggle" style="font-size: 0.65rem; letter-spacing: 0.12em; font-weight: 600; color: var(--color-text-muted);">CELESTIAL BEAMS (COLORED LIGHTS)</label>
+                    <label class="switch-toggle">
+                        <input type="checkbox" id="lights-toggle" checked>
+                        <span class="slider-round"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Journey Drumming / Liminal Beats -->
+        <section class="drumming-section" id="drumming-section">
+            <h2>🜶 RHYTHMIC ENTRAINMENT / THETA DRIVING</h2>
+            <div class="drumming-controls" id="drumming-card" style="background: rgba(255, 255, 255, 0.015); border: 1.5px solid var(--border-light); border-radius: 12px; padding: 12px 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span class="shortcut-label">ACTIVATE RHYTHMIC LAYER:</span>
+                    <label class="switch-toggle">
+                        <input type="checkbox" id="drumming-toggle">
+                        <span class="slider-round"></span>
+                    </label>
+                </div>
+                <div class="drumming-pattern-selector">
+                    <span class="shortcut-label">DRUMMING RHYTHM STYLE:</span>
+                    <div class="meditation-duration-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-top: 6px;">
+                        <button class="solfeggio-btn drumming-pattern-btn active" data-pattern="shamanic">
+                            <span class="freq-num">SHAMANIC</span>
+                            <span class="freq-name" style="font-size: 0.45rem;">Steady Pulse</span>
+                        </button>
+                        <button class="solfeggio-btn drumming-pattern-btn" data-pattern="dreamwalk">
+                            <span class="freq-num">DREAM WALK</span>
+                            <span class="freq-name" style="font-size: 0.45rem;">Heartbeat</span>
+                        </button>
+                        <button class="solfeggio-btn drumming-pattern-btn" data-pattern="tranceflow">
+                            <span class="freq-num">TRANCE FLOW</span>
+                            <span class="freq-name" style="font-size: 0.45rem;">Rolling Roll</span>
+                        </button>
+                        <button class="solfeggio-btn drumming-pattern-btn" data-pattern="thetajourney">
+                            <span class="freq-num">THETA DRUM</span>
+                            <span class="freq-name" style="font-size: 0.45rem;">Gateway Trance</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="solfeggio-desc" id="drumming-description" style="margin-top: 10px; border-left-color: var(--color-amber);">SHAMANIC PULSE: Steady, organic frame drum hits designed to ground the nervous system and induce a trance state.</p>
+            </div>
+        </section>
+
+        <!-- Cabala Inscriber -->
+        <section class="cabala-section">
+            <h2>🜚 COGNITIVE TRIGGER TRIGRAMS</h2>
+            <div class="rune-shortcuts">
+                <span class="shortcut-label">NEURAL FORMULAE:</span>
+                <div class="shortcuts-container">
+                    <button class="rune-tag" data-rune="KETHER">🜚 KETHER</button>
+                    <button class="rune-tag" data-rune="YESOD">🜄 YESOD</button>
+                    <button class="rune-tag" data-rune="ZIRAN">🜃 ZIRAN</button>
+                    <button class="rune-tag" data-rune="LEVITATE">🜁 LEVITATE</button>
+                    <button class="rune-tag" data-rune="CHAOS">🜶 CHAOS</button>
+                    <button class="rune-tag" data-rune="ECLIPSE">🜏 ECLIPSE</button>
+                    <button class="rune-tag" data-rune="CONJUNCTIO">🜍 CONJUNCTIO</button>
+                    <button class="rune-tag" data-rune="HOLOFAN" style="border-color: var(--color-amber); color: var(--color-amber);">🜏 HOLOFAN</button>
+                </div>
+            </div>
+            <div class="rune-explainer-card">
+                <p id="rune-explainer">Hover over a sacred neural trigger shortcut to translate its alchemical formula...</p>
+            </div>
+        </section>
+
+        <!-- Meditation Focus Section -->
+        <section class="meditation-section" id="meditation-section">
+            <h2>🜎 LIMINAL SPACE CONJUNCTION</h2>
+            <div class="meditation-controls" id="meditation-card">
+                <span class="shortcut-label">SELECT FOCUS DURATION:</span>
+                <div class="alchemical-timer-cross">
+                    <!-- Row 1 -->
+                    <div class="cross-spacer"></div>
+                    <button class="solfeggio-btn meditation-time-btn" data-time="60">
+                        <span class="freq-num">1 MIN</span>
+                    </button>
+                    <div class="cross-spacer"></div>
+                    
+                    <!-- Row 2 -->
+                    <button class="solfeggio-btn meditation-time-btn" id="custom-time-btn" data-time="custom">
+                        <span class="freq-num">CUSTOM</span>
+                    </button>
+                    <button class="commune-toggle-btn" id="meditation-start">
+                        <span class="go-symbol">🜎</span>
+                        <span class="go-text">GO</span>
+                    </button>
+                    <button class="solfeggio-btn meditation-time-btn active" data-time="180">
+                        <span class="freq-num">3 MIN</span>
+                    </button>
+                    
+                    <!-- Row 3 -->
+                    <div class="cross-spacer"></div>
+                    <button class="solfeggio-btn meditation-time-btn" data-time="300">
+                        <span class="freq-num">5 MIN</span>
+                    </button>
+                    <div class="cross-spacer"></div>
+                </div>
+                
+                <!-- Hidden Custom Time Input -->
+                <div id="custom-time-container" class="custom-time-hidden">
+                    <div class="custom-input-group">
+                        <label for="custom-time-input">ORB GAZE DURATION</label>
+                        <div class="custom-input-wrapper">
+                            <input type="number" id="custom-time-input" min="1" max="1440" value="10" step="1">
+                            <span class="custom-input-unit">MINS</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer / Sound System -->
+        <footer class="dashboard-footer">
+            <div class="sound-control">
+                <button class="sound-toggle-btn" id="audio-toggle">
+                    <span id="audio-icon">🔇</span>
+                    <span id="audio-label">ACTIVATE AURAL RESONANCE</span>
+                </button>
+                <div class="oscillating-wave" id="wave-container">
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                    <div class="wave-bar"></div>
+                </div>
+            </div>
+            <div class="hermetic-signature">
+                🜏 Hermes Trismegistus inv.
+            </div>
+        </footer>
+    </main>
+
+    <!-- Overlay alerting users when a rune is successfully inscribed -->
+    <div id="rune-toast" class="toast-hidden">RUNE ACTIVATED</div>
+
+    <!-- Post-Session Integration Survey Panel (Gallery Terminal Edition) -->
+    <div id="survey-overlay" class="survey-overlay-hidden">
+        <div class="survey-card">
+            <header class="survey-header">
+                <h2>🜔 PHENOMENOLOGICAL REFLECTION</h2>
+                <p class="survey-subheader">Inscribe your experience into the collective memory of the installation...</p>
+            </header>
+            <div class="survey-body">
+                <label for="survey-reflection-input" class="survey-label">What did you notice in the space between thoughts?</label>
+                <textarea id="survey-reflection-input" placeholder="An absolute stillness... Sinking into a deep golden warm void... Like floating in warm oil..." maxlength="300"></textarea>
+                <div class="survey-actions">
+                    <button id="survey-submit-btn" class="survey-btn">🜎 INSCRIBE REFLECTION</button>
+                    <button id="survey-skip-btn" class="survey-skip-btn">✕ SKIP</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="audio.js"></script>
+    <script src="engine.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Node (server.js has no deps, but guard against accidental installs)
+node_modules/
+npm-debug.log*
+
+# Local exports / captures
+*.log
+exports/
+captures/
