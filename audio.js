@@ -58,6 +58,7 @@ class AlchemicalAudioEngine {
 
         // Bellows (frame drum)
         this.bellowsEnabled = true;
+        this.drumArmed = false;   // only true during a sitting (see armDrum)
         this.bellowsPattern = 'heartbeat'; // heartbeat | shamanic | pulse | roll
         this.bellowsTimer = null;
         this.bellowsStep = 0;
@@ -267,6 +268,7 @@ class AlchemicalAudioEngine {
 
     setSessionActive(active) {
         this.inSession = !!active;
+        this.armDrum(active);
         if (!this.isActive || !this.ctx) return;
         const now = this.ctx.currentTime;
         if (!active) {
@@ -437,9 +439,17 @@ class AlchemicalAudioEngine {
 
     /* ---------------- bellows (frame drum) ---------------- */
 
+    // The drum belongs to the work itself, not the threshold screens.
+    // armDrum(true) is called when the sitting begins; false when it ends.
+    armDrum(on) {
+        this.drumArmed = !!on;
+        if (!this.ctx || !this.isActive) return;
+        if (this.drumArmed && this.bellowsEnabled) this.startBellows(); else this.stopBellows();
+    }
+
     startBellows() {
         this.stopBellows();
-        if (!this.ctx) return;
+        if (!this.ctx || !this.drumArmed) return;
         this.bellowsStep = 0;
         this.nextNoteTime = this.ctx.currentTime + 0.05;
         const ahead = 0.12;
