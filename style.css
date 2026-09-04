@@ -211,26 +211,27 @@ body:not(.kiosk-locked) #canvas-container { cursor: default; }
 .voice {
     position: absolute;
     left: 50%;
-    top: 14vh;
+    bottom: 16vh;
+    top: auto;
     transform: translateX(-50%);
-    width: min(42ch, calc(100vw - 48px));
+    width: min(40ch, calc(100vw - 48px));
     margin: 0;
     text-align: center;
     font-style: italic;
-    font-size: clamp(22px, 2.6vw, 34px);
+    font-size: clamp(20px, 2.2vw, 28px);
     line-height: 1.35;
     color: var(--ink);
     opacity: 0;
     transition: opacity 0.9s var(--ease);
     pointer-events: none;
-    text-shadow: 0 0 24px rgba(5, 5, 6, 0.9);
+    text-shadow: 0 0 24px rgba(5, 5, 6, 0.95), 0 2px 12px rgba(5, 5, 6, 0.8);
 }
 .voice.is-visible { opacity: 0.95; }
 .voice.is-command {
     font-style: normal;
     font-variant-caps: all-small-caps;
     letter-spacing: 0.18em;
-    font-size: clamp(28px, 3.4vw, 44px);
+    font-size: clamp(24px, 2.8vw, 34px);
 }
 
 body.fan-mode #mark,
@@ -244,11 +245,11 @@ body.fan-mode .attract-block .attract-sub { text-shadow: none; }
 .hint {
     position: absolute;
     left: 0; right: 0;
-    bottom: 12vh;
+    bottom: 9vh;
     margin: 0;
     text-align: center;
     font-style: italic;
-    font-size: clamp(20px, 2.2vw, 28px);
+    font-size: clamp(17px, 1.8vw, 22px);
     color: var(--ink);
     opacity: 0;
     transition: opacity 1.2s var(--ease);

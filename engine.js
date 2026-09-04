@@ -40,22 +40,22 @@ function durationWords(seconds) {
     return map[seconds] || `${Math.round(seconds)} seconds`;
 }
 
-// The guide voice. Timed from the start of the work. Lines with `command` are
-// large small-caps instructions. Lines with `needStill` wait until the visitor is still.
+// The guide voice. Timed from the start of the work.
+// Opens by answering the one question every visitor has: what does this want from me?
 const VOICE = [
-    { at: 0.4,  text: 'Move.', command: true, hold: 2.2 },
-    { at: 3.2,  text: 'Now stop.', command: true, hold: 2.4 },
-    { at: 6.2,  text: 'This is quicksilver. The alchemists called it the mind.', hold: 3.6 },
-    { at: 10.0, text: 'Tonight you are going to fix it.', hold: 2.8 },
-    { at: 13.5, text: 'Everything you carried in here is in the sphere.', hold: 3.2 },
-    { at: 17.5, text: 'The message you did not answer. The thing you said.', hold: 3.4 },
-    { at: 21.5, text: 'Let it burn. Do not move.', hold: 3.0, needStill: true },
-    { at: 28.0, text: 'Dissolve.', command: true, hold: 2.2, needStill: true },
-    { at: 32.0, text: 'You do not have to hold it together.', hold: 3.2 },
-    { at: 37.0, text: 'Follow the drum.', hold: 2.8 },
-    { at: 48.0, text: 'You are the only thing in this room that is still.', hold: 3.6, needStill: true },
-    { at: 54.0, text: 'Everything else is moving around you.', hold: 3.0 },
-    { at: 60.0, text: 'Go inward.', hold: 2.6 },
+    { at: 0.3,  text: 'This wants one thing from you.', hold: 2.6 },
+    { at: 3.2,  text: 'Your stillness.', hold: 2.4 },
+    { at: 6.2,  text: 'Move.', command: true, hold: 2.0 },
+    { at: 8.8,  text: 'Now stop.', command: true, hold: 2.2 },
+    { at: 11.5, text: 'That is the whole method. Shatter. Gather.', hold: 3.2 },
+    { at: 15.2, text: 'The sphere is quicksilver. The alchemists called it the mind.', hold: 3.6 },
+    { at: 19.5, text: 'Everything you carried in here is in it.', hold: 3.0 },
+    { at: 23.5, text: 'Let it burn. Do not move.', hold: 3.0, needStill: true },
+    { at: 30.0, text: 'Dissolve.', command: true, hold: 2.0, needStill: true },
+    { at: 34.0, text: 'You do not have to hold it together.', hold: 3.0 },
+    { at: 39.0, text: 'Follow the drum.', hold: 2.8 },
+    { at: 50.0, text: 'You are the only thing in this room that is still.', hold: 3.6, needStill: true },
+    { at: 56.0, text: 'Go inward.', hold: 2.6 },
     { at: 70.0, text: 'Solve et coagula.', hold: 3.0, needStill: true },
     { at: 75.0, text: 'This is what is left when you stop.', hold: 4.0 }
 ];
@@ -1284,7 +1284,7 @@ class Installation {
             idleSeconds: 60,
             tuning: '432',
             bellows: true,
-            bellowsPattern: 'pulse',
+            bellowsPattern: 'shamanic',
             volume: 60,
             camera: true,
             visitorChoice: true,
@@ -1604,10 +1604,9 @@ class Installation {
             // Lesson: force a shatter when "Move." is showing
             if (line.text === 'Move.') {
                 this.engine.shatterTarget = 1;
-                // Auto-shatter if they don't move within 1.5s
                 setTimeout(() => {
-                    if (this.state === 'work' && this.sessionElapsed < 4) this.engine.shatterTarget = 1;
-                }, 1500);
+                    if (this.state === 'work' && this.sessionElapsed < 10) this.engine.shatterTarget = 1;
+                }, 1200);
             }
             if (line.text === 'Now stop.') {
                 this.engine.shatterTarget = 0;

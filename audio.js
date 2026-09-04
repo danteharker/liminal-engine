@@ -58,12 +58,15 @@ class AlchemicalAudioEngine {
 
         // Bellows (frame drum)
         this.bellowsEnabled = true;
-        this.bellowsPattern = 'pulse'; // pulse | heartbeat | roll
+        this.bellowsPattern = 'shamanic'; // shamanic | pulse | heartbeat | roll
         this.bellowsTimer = null;
         this.bellowsStep = 0;
-        this.bellowsTempo = 240; // shamanic: four hits a second at the start
-        this.bellowsGainValue = 1.0; // scaled by opus
+        // Hits per minute. Shamanic journey drumming is ~220–250 (about 4 per second).
+        this.bellowsTempo = 220;
+        this.bellowsGainValue = 1.0;
         this.nextNoteTime = 0;
+        this.drumBus = null; // louder dedicated bus for the frame drum
+
 
         // Visual sync: the engine reads these every frame
         this.beatPulse = 0;
@@ -95,6 +98,11 @@ class AlchemicalAudioEngine {
         this.masterGain = this.ctx.createGain();
         this.masterGain.gain.setValueAtTime(0, now);
         this.masterGain.connect(this.limiter);
+
+        // Frame drum rides its own bus so it can sit in front of the drone
+        this.drumBus = this.ctx.createGain();
+        this.drumBus.gain.setValueAtTime(1.35, now);
+        this.drumBus.connect(this.limiter);
 
         this.filter = this.ctx.createBiquadFilter();
         this.filter.type = 'lowpass';
@@ -228,7 +236,7 @@ class AlchemicalAudioEngine {
     }
 
     setBellowsPattern(p) {
-        if (!['pulse', 'heartbeat', 'roll'].includes(p)) return;
+        if (!['shamanic', 'pulse', 'heartbeat', 'roll'].includes(p)) return;
         this.bellowsPattern = p;
     }
 
@@ -249,8 +257,8 @@ class AlchemicalAudioEngine {
         // Pad grows quieter and purer
         this.padGainMaster.gain.setTargetAtTime(0.05 - p * 0.03, now, 0.8);
 
-        // Bellows: shamanic 240 bpm (4 hits/s) -> resting heart ~60, silent at gold
-        this.bellowsTempo = 240 - p * 180;
+        // Frame drum: Harner-style ~220 bpm (~3.7 Hz) down to a resting heart, then silent
+        this.bellowsTempo = 220 - p * 155; // 220 -> 65
         this.bellowsGainValue = p < 0.82 ? 1.0 : Math.max(0, 1.0 - (p - 0.82) / 0.18);
 
         // Binaural spread narrows towards unison at rubedo (8 Hz -> 4 Hz)
@@ -267,7 +275,7 @@ class AlchemicalAudioEngine {
             this.filter.frequency.setTargetAtTime(220, now, 1.5);
             this.filter.Q.setTargetAtTime(3, now, 1.5);
             this.padGainMaster.gain.setTargetAtTime(0.05, now, 1.5);
-            this.bellowsTempo = 240;
+            this.bellowsTempo = 220;
             this.bellowsGainValue = 1.0;
         }
     }
@@ -439,7 +447,11 @@ class AlchemicalAudioEngine {
         const tick = () => {
             while (this.nextNoteTime < this.ctx.currentTime + ahead) {
                 this.scheduleBellowsStep(this.bellowsStep, this.nextNoteTime);
-                const stepDur = (60.0 / this.bellowsTempo) / 4;
+                // Shamanic: bellowsTempo is hits-per-minute (isochronous).
+                // Other patterns keep 16th-grid subdivision of a quarter-note tempo.
+                const stepDur = this.bellowsPattern === 'shamanic'
+                    ? (60.0 / Math.max(40, this.bellowsTempo))
+                    : (60.0 / this.bellowsTempo) / 4;
                 this.nextNoteTime += stepDur;
                 this.bellowsStep = (this.bellowsStep + 1) % 8;
             }
@@ -455,7 +467,11 @@ class AlchemicalAudioEngine {
     scheduleBellowsStep(step, time) {
         if (!this.isActive || !this.ctx || this.bellowsGainValue <= 0.001) return;
         let play = false, vel = 1.0;
-        if (this.bellowsPattern === 'pulse') {
+        if (this.bellowsPattern === 'shamanic') {
+            // Steady isochronous pulse — the regularity is the hook. Tiny accent every 4th.
+            play = true;
+            vel = (this.bellowsStep % 4 === 0) ? 1.0 : 0.88;
+        } else if (this.bellowsPattern === 'pulse') {
             if (step === 0 || step === 4) { play = true; vel = step === 0 ? 1.0 : 0.75; }
         } else if (this.bellowsPattern === 'heartbeat') {
             if ([0, 3, 4, 7].includes(step)) { play = true; vel = (step === 0 || step === 4) ? 1.0 : 0.6; }
@@ -468,55 +484,78 @@ class AlchemicalAudioEngine {
     playDrumHit(time, velocity = 1.0) {
         if (!this.ctx || !this.isActive) return;
         const now = time || this.ctx.currentTime;
-        // Fire the visual beat slightly before the sound reaches the ear (lookahead)
         const delayMs = Math.max(0, (now - this.ctx.currentTime) * 1000);
         setTimeout(() => {
             this.beatPulse = Math.min(1, 0.55 + velocity * 0.45);
             this.lastBeatAt = performance.now();
             this.beatCount++;
         }, delayMs);
-        const out = this.ctx.createGain();
-        out.connect(this.masterGain);
-        const lp = this.ctx.createBiquadFilter();
-        lp.type = 'lowpass';
-        lp.frequency.setValueAtTime(240, now);
-        lp.Q.setValueAtTime(1.5, now);
-        lp.connect(out);
 
+        const dest = this.drumBus || this.masterGain;
+        const out = this.ctx.createGain();
+        out.connect(dest);
+        out.gain.setValueAtTime(1.15 * velocity, now);
+        out.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+
+        // Deep skin body (the thump you feel in the chest)
         const body = this.ctx.createOscillator();
         const bodyG = this.ctx.createGain();
+        const bodyLp = this.ctx.createBiquadFilter();
         body.type = 'sine';
-        body.frequency.setValueAtTime(100, now);
-        body.frequency.exponentialRampToValueAtTime(25, now + 0.42);
+        body.frequency.setValueAtTime(85, now);
+        body.frequency.exponentialRampToValueAtTime(38, now + 0.28);
+        bodyLp.type = 'lowpass';
+        bodyLp.frequency.setValueAtTime(180, now);
         bodyG.gain.setValueAtTime(0, now);
-        bodyG.gain.linearRampToValueAtTime(1.5 * velocity, now + 0.003);
-        bodyG.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+        bodyG.gain.linearRampToValueAtTime(1.8 * velocity, now + 0.004);
+        bodyG.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
         body.connect(bodyG);
-        bodyG.connect(lp);
+        bodyG.connect(bodyLp);
+        bodyLp.connect(out);
         body.start(now);
-        body.stop(now + 0.45);
+        body.stop(now + 0.42);
 
-        const skin = this.ctx.createOscillator();
-        const skinG = this.ctx.createGain();
-        skin.type = 'triangle';
-        skin.frequency.setValueAtTime(320, now);
-        skin.frequency.exponentialRampToValueAtTime(90, now + 0.015);
-        skinG.gain.setValueAtTime(0, now);
-        skinG.gain.linearRampToValueAtTime(0.9 * velocity, now + 0.001);
-        skinG.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-        skin.connect(skinG);
-        skinG.connect(lp);
-        skin.start(now);
-        skin.stop(now + 0.02);
+        // Mid tone of the hoop / skin
+        const mid = this.ctx.createOscillator();
+        const midG = this.ctx.createGain();
+        mid.type = 'triangle';
+        mid.frequency.setValueAtTime(180, now);
+        mid.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+        midG.gain.setValueAtTime(0, now);
+        midG.gain.linearRampToValueAtTime(0.55 * velocity, now + 0.002);
+        midG.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        mid.connect(midG);
+        midG.connect(out);
+        mid.start(now);
+        mid.stop(now + 0.16);
+
+        // Stick slap: short noise burst through a bandpass (the "crack" of hide)
+        const noiseDur = 0.045;
+        const noiseBuf = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * noiseDur), this.ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = noiseBuf;
+        const noiseG = this.ctx.createGain();
+        const noiseBp = this.ctx.createBiquadFilter();
+        noiseBp.type = 'bandpass';
+        noiseBp.frequency.setValueAtTime(900, now);
+        noiseBp.Q.setValueAtTime(1.2, now);
+        noiseG.gain.setValueAtTime(0, now);
+        noiseG.gain.linearRampToValueAtTime(0.7 * velocity, now + 0.001);
+        noiseG.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+        noise.connect(noiseBp);
+        noiseBp.connect(noiseG);
+        noiseG.connect(out);
+        noise.start(now);
+        noise.stop(now + noiseDur);
 
         if (this.delayNode) {
             const send = this.ctx.createGain();
-            send.gain.setValueAtTime(0.24 * velocity, now);
+            send.gain.setValueAtTime(0.18 * velocity, now);
             out.connect(send);
             send.connect(this.delayNode);
         }
-        out.gain.setValueAtTime(1.2, now);
-        out.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
     }
 }
 
