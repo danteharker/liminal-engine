@@ -764,14 +764,16 @@ class LiminalEngine3D {
     // Extra ring copies that bloom into a mandala through Albedo / Citrinitas
     createKaleidoRings() {
         this.kaleidoRings = [];
-        const offsets = [
-            { y: Math.PI / 3, z: Math.PI / 5 },
-            { y: -Math.PI / 3, z: -Math.PI / 4 },
-            { y: Math.PI / 2.2, z: Math.PI / 7 },
-            { x: Math.PI / 5, y: Math.PI / 6 },
-            { x: -Math.PI / 4, z: Math.PI / 3 },
-            { y: Math.PI / 1.7, z: -Math.PI / 5 }
-        ];
+        const offsets = [];
+        for (let n = 0; n < 12; n++) {
+            const a = (n / 12) * Math.PI * 2;
+            offsets.push({
+                x: Math.sin(a) * 0.55,
+                y: Math.cos(a) * 0.7,
+                z: Math.sin(a * 2) * 0.4,
+                phase: n * 0.55
+            });
+        }
         offsets.forEach((off, i) => {
             const src = this.rings[i % 3].mesh;
             const mesh = src.clone();
@@ -779,11 +781,10 @@ class LiminalEngine3D {
             mesh.material.transparent = true;
             mesh.material.opacity = 0;
             mesh.material.depthWrite = false;
-            if (off.x) mesh.rotation.x += off.x;
-            if (off.y) mesh.rotation.y += off.y;
-            if (off.z) mesh.rotation.z += off.z;
+            mesh.material.metalness = 0.85;
+            mesh.material.roughness = 0.2;
             this.group.add(mesh);
-            this.kaleidoRings.push({ mesh, off, phase: i * 0.7 });
+            this.kaleidoRings.push({ mesh, off, phase: off.phase });
         });
     }
 
@@ -1056,8 +1057,8 @@ class LiminalEngine3D {
         // 1. Quicksilver surface. Agitation + shatter
         this.displaceCore(t, p, Math.max(motion, shatter * 0.8));
 
-        // Beat pulse on the sphere, stronger early when the drum is fast
-        const beatAmp = lerp(0.08, 0.02, p) * beat;
+        // Beat pulse on the sphere, stronger early when the drum is present
+        const beatAmp = lerp(0.1, 0.035, p) * beat;
         const heart = t * Math.PI * 2 * 1.0;
         const pulse = 1 + Math.max(0, Math.sin(heart)) * 0.02 + beatAmp;
         const breath = 1 + Math.sin(t * 0.785) * 0.04;
@@ -1068,7 +1069,20 @@ class LiminalEngine3D {
         this.core.visible = shatter < 0.92;
         this.core.rotation.y += dt * 0.25 * lerp(1, 0.4, p);
         this.core.rotation.x += dt * 0.08 * lerp(1, 0.4, p);
-        this.group.position.y = Math.sin(t * 0.8) * 0.05;
+
+        // Hypnotic: the whole apparatus breathes and slowly spirals as the mandala opens
+        const spin = this.kaleido * 0.22;
+        this.group.rotation.z = Math.sin(t * 0.15) * 0.08 * this.kaleido;
+        this.group.rotation.y += dt * spin;
+        this.group.position.y = Math.sin(t * 0.8) * 0.05 * (1 - this.kaleido * 0.5);
+
+        // Soft FOV pulse on the beat — pulls the eye in without leaving the centre
+        const fovTarget = 42 - this.kaleido * 6 - beat * 1.2;
+        this.camera.fov = lerp(this.camera.fov, fovTarget, clamp01(dt * 3));
+        this.camera.updateProjectionMatrix();
+
+        // Furnace flashes with the drum
+        if (this.furnace) this.furnace.intensity = stageLerp([2.2, 2.0, 2.4, 2.8], p) + beat * 1.4;
 
         // 2. Rings: Lissajous precession + beat kick + kaleidoscope bloom
         const ringSpeed = lerp(1.15, 0.35, p);
@@ -1095,19 +1109,19 @@ class LiminalEngine3D {
             }
         });
 
-        // Mandala copies bloom with kaleido, spin slower, pull inward in citrinitas
-        const pull = p > 0.5 ? (p - 0.5) * 0.35 : 0;
+        // Mandala: twelve ghost rings, brighter, spinning, pulling inward in citrinitas
+        const pull = p > 0.5 ? (p - 0.5) * 0.55 : 0;
         if (this.kaleidoRings) {
             this.kaleidoRings.forEach((k, i) => {
                 const src = this.rings[i % 3].mesh;
                 k.mesh.rotation.copy(src.rotation);
-                k.mesh.rotation.x += k.off.x || 0;
-                k.mesh.rotation.y += (k.off.y || 0) + t * 0.15 * (1 - p);
-                k.mesh.rotation.z += (k.off.z || 0) + t * 0.08;
-                const op = this.kaleido * (0.35 + 0.1 * Math.sin(t + k.phase));
-                k.mesh.material.opacity = op;
-                k.mesh.visible = op > 0.02;
-                const sc = (1 - pull * 0.4) * (1 + beat * 0.06);
+                k.mesh.rotation.x += (k.off.x || 0) + t * 0.12 * this.kaleido;
+                k.mesh.rotation.y += (k.off.y || 0) + t * 0.2 * (1 - p * 0.5);
+                k.mesh.rotation.z += (k.off.z || 0) + t * 0.1;
+                const op = this.kaleido * (0.55 + 0.2 * Math.sin(t * 1.4 + k.phase) + beat * 0.15);
+                k.mesh.material.opacity = Math.min(0.85, op);
+                k.mesh.visible = op > 0.03;
+                const sc = (1 - pull * 0.55) * (1 + beat * 0.1) * (0.95 + 0.08 * Math.sin(t + k.phase));
                 k.mesh.scale.setScalar(sc);
             });
         }
@@ -1134,13 +1148,13 @@ class LiminalEngine3D {
         // Dissolve (albedo) adds orbital droplets even when gathered
         const dissolve = clamp01((p - 0.22) / 0.28) * (1 - clamp01((p - 0.72) / 0.2));
         const amount = Math.max(shatter, dissolve * 0.85);
-        this.droplets.material.opacity = amount * 0.85;
-        this.droplets.material.size = 0.04 + shatter * 0.04 + beat * 0.02;
+        this.droplets.material.opacity = amount * 0.95;
+        this.droplets.material.size = 0.045 + shatter * 0.05 + beat * 0.035 + dissolve * 0.03;
 
         for (let i = 0; i < count; i++) {
             const bx = base[i * 3], by = base[i * 3 + 1], bz = base[i * 3 + 2];
-            const orbitR = 1 + dissolve * (1.5 + 0.5 * Math.sin(t * 0.7 + i * 0.2));
-            const ang = t * (0.35 + (i % 7) * 0.025) * (1 - p * 0.4);
+            const orbitR = 1 + dissolve * (2.2 + 0.8 * Math.sin(t * 0.7 + i * 0.2));
+            const ang = t * (0.55 + (i % 7) * 0.04) * (1 - p * 0.35);
             const ox = bx * Math.cos(ang) - bz * Math.sin(ang);
             const oz = bx * Math.sin(ang) + bz * Math.cos(ang);
             let x = ox * orbitR;
@@ -1177,8 +1191,9 @@ class LiminalEngine3D {
         const near = this._tmpColor, far = this._tmpColor2;
         stageLerpColor([0x5a4e3e, 0x9fa3a8, 0xc9a85e, 0xe0be6e], p, near);
         stageLerpColor([0x14110e, 0x2c2f33, 0x3a2c12, 0x4a3a18], p, far);
-        this.particles.material.opacity = lerp(0.32, 0.18, p);
-        const turbulence = lerp(0.004, 0.0006, p) + motion * 0.004;
+        this.particles.material.opacity = lerp(0.32, 0.22, p) + beat * 0.12;
+        this.particles.material.size = 0.026 + beat * 0.02;
+        const turbulence = lerp(0.004, 0.0006, p) + motion * 0.004 + beat * 0.003;
 
         for (let i = 0; i < count; i++) {
             const px = pos[i * 3], py = pos[i * 3 + 1], pz = pos[i * 3 + 2];
@@ -1476,7 +1491,11 @@ class Installation {
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
-            if (e.key === 'Escape') { if (this.state === 'work' || this.state === 'intro' || this.state === 'choose') this.endSession(false); return; }
+            if (e.key === 'Escape') {
+                if (this.state === 'work' || this.state === 'intro' || this.state === 'choose') this.endSession(false);
+                else if (this.state === 'return' || this.state === 'reflect' || this.state === 'thanks') this.toAttract();
+                return;
+            }
             if (this.state === 'attract' && (e.key === ' ' || e.key === 'Enter')) this.begin();
             if (this.state === 'choose' && e.key === 'Enter') this.startIntro();
             if (this.state === 'intro' && (e.key === ' ' || e.key === 'Enter')) this.startWork();
@@ -1555,6 +1574,9 @@ class Installation {
         this.engine.opus = 0.02;
         this.engine.shatter = 0;
         this.engine.shatterTarget = 0;
+        this.engine.group.rotation.set(0, 0, 0);
+        this.engine.camera.fov = 42;
+        this.engine.camera.updateProjectionMatrix();
         this.voiceIndex = 0;
         this.againUntil = 0;
         this.clearVoice();
@@ -1690,6 +1712,9 @@ class Installation {
         this.state = 'attract';
         this.engine.inSession = false;
         this.engine.cameraTargetZ = 5.0;
+        this.engine.group.rotation.set(0, 0, 0);
+        this.engine.camera.fov = 42;
+        this.engine.camera.updateProjectionMatrix();
         this.show(this.el.hud, false);
         this.show(this.el.choose, false);
         this.show(this.el.intro, false);
