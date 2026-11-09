@@ -170,12 +170,17 @@ class StillnessSensor {
         }
     }
 
-    async startCamera() {
+    async startCamera(isRetry) {
         if (!this.enabled) return false;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            this.lastError = 'unavailable';
             this.source = 'pointer';
             return false;
         }
+        // A newer call supersedes one still waiting, so two requests never fight over the camera
+        if (!isRetry) this._camAttempt = (this._camAttempt || 0) + 1;
+        const attempt = this._camAttempt;
+        if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
         try {
             this.stream = await navigator.mediaDevices.getUserMedia({
                 video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user', frameRate: { ideal: 30 } },
@@ -187,14 +192,26 @@ class StillnessSensor {
             v.autoplay = true;
             v.srcObject = this.stream;
             await v.play().catch(() => {});
+            if (attempt !== this._camAttempt) { this.stream.getTracks().forEach(t => t.stop()); return false; }
             this.video = v;
             this.source = 'camera';
+            this.lastError = null;
             this.lumaRing = [];
             this.lastVideoTime = -1;
             return true;
         } catch (err) {
-            console.info('Camera unavailable, using pointer fallback:', err && err.name);
-            this.lastError = (err && err.name) || 'unknown';
+            if (attempt !== this._camAttempt) return false;
+            const name = (err && err.name) || 'unknown';
+            console.info('Camera unavailable, using pointer fallback:', name);
+            this.lastError = name;
+            this.stream = null;
+            // These two often clear on their own: a request that was interrupted, or a camera
+            // another tab released a moment ago. Try once more before telling the visitor.
+            if (!isRetry && (name === 'AbortError' || name === 'NotReadableError')) {
+                await new Promise(r => setTimeout(r, 700));
+                if (attempt !== this._camAttempt) return false;
+                return this.startCamera(true);
+            }
             this.source = 'pointer';
             return false;
         }
@@ -1629,6 +1646,11 @@ class Installation {
         this.setOrbVisible(true, 1.8);
         this.rotateAttractInscription();
         this.startSensor();
+        // A hidden tab must let go of the camera, or it blocks the one the visitor is looking at
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) this.sensor.stopCamera();
+            else if (this.settings.camera) this.startSensor();
+        });
         this.loop();
     }
 
@@ -1775,7 +1797,8 @@ class Installation {
             let why = 'No camera.';
             if (e === 'NotAllowedError' || e === 'SecurityError') why = 'Camera blocked. Click the padlock or camera icon beside the address, set Camera to Allow, then tap here.';
             else if (e === 'NotFoundError' || e === 'OverconstrainedError') why = 'No camera found on this device.';
-            else if (e === 'NotReadableError' || e === 'AbortError') why = 'The camera is busy in another app or tab. Close it, then tap here.';
+            else if (e === 'NotReadableError') why = 'The camera did not open. Tap here to try again. If it keeps failing, another window may be holding it, or Windows privacy is blocking the browser.';
+            else if (e === 'AbortError') why = 'The camera request was interrupted. Tap here to try again.';
             else if (!this.settings.camera) why = 'Camera is switched off in settings.';
             else if (e) why = 'Camera could not start (' + e + '). Tap here to try again.';
             text = why + ' Meanwhile stillness is read from touch and mouse.';
@@ -1800,9 +1823,21 @@ class Installation {
     toggleMute() {
         const A = window.AlchemicalAudio;
         if (!A) return;
-        A.resume();
+        const preview = this.state === 'attract' || this.state === 'story';
+        // The title screen is silent until the first gesture, and this button is that gesture.
+        // The first press starts the sound instead of muting a silence.
+        if (!A.ctx) {
+            A.titlePreview = preview;
+            A.resume();
+            if (A.ctx && A.ctx.state === 'suspended') A.ctx.resume();
+            this.syncMuteUI(false);
+            A.playConfirm();
+            return;
+        }
+        A.titlePreview = preview;
         const muted = A.toggleHardwareMute();
         this.syncMuteUI(muted);
+        if (!muted) A.playConfirm();
     }
 
     syncMuteUI(muted) {

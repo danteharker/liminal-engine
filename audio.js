@@ -24,7 +24,8 @@ class AlchemicalAudioEngine {
         this.ctx = null;
         this.isActive = false;
         this.isHardwareMuted = false;
-        this.isSleeping = true;       // silent until the piece calls wake() at the tone picker
+        this.isSleeping = true;       // full mix waits for wake(); a quiet preview can play before that
+        this.titlePreview = false;
         this.curatorVolume = 0.6;
 
         this.masterGain = null;
@@ -201,8 +202,22 @@ class AlchemicalAudioEngine {
     }
 
     targetMasterLevel() {
-        if (this.isHardwareMuted || this.isSleeping) return 0;
+        if (this.isHardwareMuted) return 0;
+        if (this.isSleeping) return this.titlePreview ? this.curatorVolume * 0.16 : 0;
         return this.curatorVolume * 0.35;
+    }
+
+    // Master level, and the drum bus, which does not pass through the master gain
+    applyOutput() {
+        if (!this.isActive || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        this.masterGain.gain.cancelScheduledValues(now);
+        this.masterGain.gain.setTargetAtTime(this.targetMasterLevel(), now, 0.12);
+        if (this.drumBus) {
+            const drum = this.isHardwareMuted ? 0 : 0.5;
+            this.drumBus.gain.cancelScheduledValues(now);
+            this.drumBus.gain.setTargetAtTime(drum, now, 0.05);
+        }
     }
 
     // Start and story are silent. sleep() fades out and then suspends the whole audio
@@ -239,21 +254,32 @@ class AlchemicalAudioEngine {
 
     setMasterVolume(v) {
         this.curatorVolume = Math.max(0, Math.min(1, v));
-        if (this.isActive && this.ctx) {
-            const now = this.ctx.currentTime;
-            this.masterGain.gain.cancelScheduledValues(now);
-            this.masterGain.gain.setTargetAtTime(this.targetMasterLevel(), now, 0.1);
-        }
+        this.applyOutput();
     }
 
     toggleHardwareMute() {
         this.isHardwareMuted = !this.isHardwareMuted;
-        if (this.isActive && this.ctx) {
-            const now = this.ctx.currentTime;
-            this.masterGain.gain.cancelScheduledValues(now);
-            this.masterGain.gain.setTargetAtTime(this.targetMasterLevel(), now, 0.08);
-        }
+        this.applyOutput();
         return this.isHardwareMuted;
+    }
+
+    // A single soft bell, heard even on the silent title screen, so the button proves itself
+    playConfirm() {
+        if (!this.ctx || this.isHardwareMuted) return;
+        if (!this.isActive) this.resume();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const g = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(528, now);
+        osc.frequency.exponentialRampToValueAtTime(792, now + 0.4);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.18, now + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+        osc.connect(g);
+        g.connect(this.limiter || this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.7);
     }
 
     setTuning(key) {
