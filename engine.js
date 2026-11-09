@@ -375,7 +375,8 @@ class LiminalEngine3D {
         this.fanMode = !!on;
         document.body.classList.toggle('fan-mode', this.fanMode);
         if (this.wall) this.wall.visible = !this.fanMode;
-        if (this.halo) this.halo.visible = !this.fanMode;
+        if (this.halo) this.halo.visible = false; // the vortex carries the glow now
+        if (this.vortex) this.vortex.visible = !this.fanMode;
         if (this.fanMode) {
             this.renderer.setClearColor(0x000000);
             if (this.scene.fog) this.scene.fog.density = 0.02;
@@ -414,6 +415,7 @@ class LiminalEngine3D {
         this.createTrails();
         this.createWall();
         this.createHalo();
+        this.createVortex();
         this.createKaleidoRings();
         this.setupEvents();
 
@@ -876,9 +878,9 @@ class LiminalEngine3D {
         for (let n = 0; n < 12; n++) {
             const a = (n / 12) * Math.PI * 2;
             offsets.push({
-                x: Math.sin(a) * 0.55,
-                y: Math.cos(a) * 0.7,
-                z: Math.sin(a * 2) * 0.4,
+                x: Math.sin(a) * 0.16,
+                y: Math.cos(a) * 0.2,
+                z: Math.sin(a * 2) * 0.12,
                 phase: n * 0.55
             });
         }
@@ -964,6 +966,55 @@ class LiminalEngine3D {
         this.halo = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), mat);
         this.halo.position.set(0, -0.4, -3.3);
         this.scene.add(this.halo);
+    }
+
+    // The hypnotic ground: a slow two-arm spiral of light pouring inward to the sphere.
+    // Everything on it moves toward the centre, so the eye is carried to one place and
+    // held there. Dark at the edges, brightest at the heart, swelling with the heartbeat.
+    createVortex() {
+        const mat = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uBeat: { value: 0 },
+                uOpus: { value: 0 },
+                uRoom: { value: new THREE.Color() },
+                uGlow: { value: new THREE.Color() }
+            },
+            vertexShader: 'varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+            fragmentShader: [
+                'varying vec2 vP;',
+                'uniform float uTime, uBeat, uOpus;',
+                'uniform vec3 uRoom, uGlow;',
+                'void main(){',
+                '  float r = length(vP);',
+                '  float a = atan(vP.y, vP.x);',
+                '  float calm = 1.0 - uOpus * 0.6;',
+                // log radius: rings crowd toward the centre like a tunnel; time makes them fall inward
+                '  float lr = log(r + 0.45) * 5.0;',
+                // whole-number arms, so there is no seam where the angle wraps
+                '  float w = lr * 1.6 + a * 2.0 + uTime * 0.55 * calm;',
+                '  float band = 0.5 + 0.5 * sin(w);',
+                '  band = smoothstep(0.0, 1.0, band);',
+                '  float rings = 0.5 + 0.5 * sin(lr * 3.2 + uTime * 0.9 * calm);',
+                '  float v = band * 0.75 + rings * 0.25;',
+                '  float heart = exp(-r * 0.32);',
+                '  float edge = smoothstep(9.0, 1.5, r);',
+                '  float lum = v * (0.12 + 0.55 * heart) * edge * 0.9;',
+                '  lum *= 1.0 + uBeat * 0.55;',
+                '  vec3 col = uRoom * (0.10 + 0.22 * heart) + uGlow * lum;',
+                // a still pool of light right behind the sphere: the place to rest the eyes
+                '  col += uGlow * exp(-r * r * 0.7) * (0.2 + 0.15 * uBeat);',
+                '  gl_FragColor = vec4(col, 1.0);',
+                '  #include <tonemapping_fragment>',
+                '  #include <encodings_fragment>',
+                '}'
+            ].join('\n')
+        });
+        this.vortex = new THREE.Mesh(new THREE.PlaneGeometry(70, 46), mat);
+        this.vortex.position.set(0, 0, -3.2);
+        this.vortex.renderOrder = -10;
+        this.scene.add(this.vortex);
+        if (this.halo) this.halo.visible = false;
     }
 
     /* ---------------- events ---------------- */
@@ -1086,6 +1137,14 @@ class LiminalEngine3D {
             this.halo.material.opacity = stageLerp([0.22, 0.32, 0.40, 0.48], p);
             const hs = 1 + 0.04 * Math.sin(this.time * 0.6);
             this.halo.scale.set(hs, hs, 1);
+            if (this.vortex) {
+                const u = this.vortex.material.uniforms;
+                u.uTime.value = this.time;
+                u.uBeat.value = beat;
+                u.uOpus.value = p;
+                u.uRoom.value.copy(this._roomColor);
+                u.uGlow.value.copy(this.paletteGlow);
+            }
         }
 
         // Furnace takes the tone's glow as well as the stage colour
@@ -1245,20 +1304,21 @@ class LiminalEngine3D {
         this.core.rotation.x += dt * 0.08 * lerp(1, 0.4, p);
 
         // Hypnotic: the whole apparatus breathes and slowly spirals as the mandala opens
-        const spin = this.kaleido * 0.22;
-        this.group.rotation.z = Math.sin(t * 0.15) * 0.08 * this.kaleido;
-        this.group.rotation.y += dt * spin;
-        this.group.position.y = Math.sin(t * 0.8) * 0.05 * (1 - this.kaleido * 0.5);
+        // The sphere stays pinned to the centre of the screen: it is the one thing the eye
+        // can hold. Only a very slow turn about the viewing axis, like a mandala.
+        this.group.rotation.z = t * 0.03 * this.kaleido;
+        this.group.rotation.y = 0;
+        this.group.position.y = 0;
         // The whole piece leans toward where you are moving, like a reflection following your hand
         {
             const lean = clamp01(motion * 1.8);
             const lx = (this.sensor.motionX || 0) * lean, ly = (this.sensor.motionY || 0) * lean;
             this._leanX = lerp(this._leanX || 0, lx, clamp01(dt * 6));
             this._leanY = lerp(this._leanY || 0, ly, clamp01(dt * 6));
-            this.group.position.x = this._leanX * 0.38;
-            this.group.position.y += this._leanY * 0.25;
-            this.group.rotation.x = -this._leanY * 0.28;
-            this.group.rotation.z += this._leanX * 0.12;
+            this.group.position.x = this._leanX * 0.08;
+            this.group.position.y += this._leanY * 0.05;
+            this.group.rotation.x = -this._leanY * 0.06;
+            this.group.rotation.z += this._leanX * 0.03;
 
             // Where your hand is, in the space of the group and of the metal itself
             const T = THREE;
@@ -1283,12 +1343,12 @@ class LiminalEngine3D {
         if (this.furnace) this.furnace.intensity = stageLerp([2.2, 2.0, 2.4, 2.8], p) + beat * 1.4;
 
         // 2. Rings: Lissajous precession + beat kick + kaleidoscope bloom
-        const ringSpeed = lerp(1.15, 0.35, p);
+        const ringSpeed = lerp(0.8, 0.3, p);
         this.rings.forEach((r, i) => {
             const ts = t * 0.4 * ringSpeed;
-            r.mesh.rotation.x = Math.sin(ts * r.freqX + r.phase) * 0.5 + Math.PI / 2;
-            r.mesh.rotation.y = Math.cos(ts * r.freqY + r.phase) * 0.5;
-            r.mesh.rotation.z += dt * 0.3 * ringSpeed;
+            r.mesh.rotation.x = Math.sin(ts * r.freqX + r.phase) * 0.3 + Math.PI / 2;
+            r.mesh.rotation.y = Math.cos(ts * r.freqY + r.phase) * 0.3;
+            r.mesh.rotation.z += dt * 0.2 * ringSpeed;
             r.mesh.position.z = Math.sin(t * 0.5 + i * Math.PI) * 0.15;
             const kick = 1 + beat * lerp(0.12, 0.03, p);
             r.mesh.scale.setScalar(kick);
@@ -1313,13 +1373,14 @@ class LiminalEngine3D {
             this.kaleidoRings.forEach((k, i) => {
                 const src = this.rings[i % 3].mesh;
                 k.mesh.rotation.copy(src.rotation);
-                k.mesh.rotation.x += (k.off.x || 0) + t * 0.12 * this.kaleido;
-                k.mesh.rotation.y += (k.off.y || 0) + t * 0.2 * (1 - p * 0.5);
-                k.mesh.rotation.z += (k.off.z || 0) + t * 0.1;
-                const op = this.kaleido * (0.55 + 0.2 * Math.sin(t * 1.4 + k.phase) + beat * 0.15);
-                k.mesh.material.opacity = Math.min(0.85, op);
+                // Calm echoes: the same rings, nested and fanned, turning together
+                k.mesh.rotation.x += (k.off.x || 0);
+                k.mesh.rotation.y += (k.off.y || 0);
+                k.mesh.rotation.z += (k.off.z || 0) + (i / 12) * 0.5;
+                const op = this.kaleido * (0.22 + 0.06 * Math.sin(t * 0.8 + k.phase) + beat * 0.06);
+                k.mesh.material.opacity = Math.min(0.35, op);
                 k.mesh.visible = op > 0.03;
-                const sc = (1 - pull * 0.55) * (1 + beat * 0.1) * (0.95 + 0.08 * Math.sin(t + k.phase));
+                const sc = (0.55 + 0.5 * (i / 11)) * (1 - pull * 0.4) * (1 + beat * 0.04);
                 k.mesh.scale.setScalar(sc);
             });
         }

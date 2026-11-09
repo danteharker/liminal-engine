@@ -877,9 +877,10 @@ body.fan-mode #attract::before, body.fan-mode #attract::after { display: none; }
 
 /* Words laid over the sphere during the sitting */
 .voice {
-    padding: 0.5em 1.1em;
-    background: rgba(5, 5, 6, 0.64);
-    border-radius: 6px;
+    /* soft pool of dark, no hard box: the words sit in the piece, not on a label */
+    background: radial-gradient(ellipse at center, rgba(5, 5, 6, 0.72) 0%, rgba(5, 5, 6, 0.5) 55%, rgba(5, 5, 6, 0) 100%);
+    border-radius: 50%;
+    padding: 0.9em 2em;
 }
 .voice.is-visible { opacity: 1; }
 .hint { text-shadow: 0 0 18px rgba(5, 5, 6, 1), 0 2px 8px rgba(5, 5, 6, 0.95); }
@@ -945,6 +946,8 @@ body.fan-mode .presence { display: none; }
 .layer > * { transition: transform 1.4s var(--ease); transform: translateY(14px); }
 .layer.is-visible > * { transform: none; }
 .layer > .note, .layer > .inscription { transform: none; }
+/* The voice line centres itself with a transform, so the drift rule above must not replace it */
+.layer > .voice, .layer.is-visible > .voice { transform: translate(-50%, -50%); transition: opacity 0.9s var(--ease); }
 
 /* Phones and tablets */
 @supports (padding: max(0px)) {
