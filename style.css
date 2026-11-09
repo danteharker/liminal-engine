@@ -1,7 +1,7 @@
 /* ==========================================================================
    LIMINAL ENGINE — surface
 
-   Palette: near-black, parchment, one gold. No gradients, no glow, no blur.
+   Palette: near-black, parchment, one gold. No glow, no blur. Soft dark backings sit behind text over the metal (see the legibility pass at the end).
    Type:    EB Garamond for the visitor. IBM Plex Mono for the curator.
    ========================================================================== */
 
@@ -828,4 +828,156 @@ body.fan-mode .attract-block .attract-sub { text-shadow: none; }
 @media (prefers-reduced-motion: reduce) {
     .layer, .inscription, .stage, .modal, .story-line, .story-cue, #canvas-container { transition-duration: 0.01ms; }
     .story-cue.is-visible { animation: none; }
+}
+
+
+/* ==========================================================================
+   LEGIBILITY PASS (9 Nov 2026)
+   The metal is bright and moves behind the words. These rules put a soft dark
+   backing behind text that sits over it, lift the faint greys, and nudge the
+   smallest sizes up. Fan mode is pure black, so the backings are hidden there.
+   ========================================================================== */
+:root {
+    --ink-dim: rgba(233, 226, 211, 0.84);
+    --ink-faint: rgba(233, 226, 211, 0.68);
+}
+
+/* Attract: title and invitation sit on a dark rise at the bottom, the inscription on one at the top */
+#attract::before, #attract::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+#attract::before { top: 0; height: 24vh; background: linear-gradient(to bottom, rgba(5, 5, 6, 0.66), rgba(5, 5, 6, 0)); }
+#attract::after  { bottom: 0; height: 48vh; background: linear-gradient(to top, rgba(5, 5, 6, 0.86), rgba(5, 5, 6, 0)); }
+body.fan-mode #attract::before, body.fan-mode #attract::after { display: none; }
+
+.inscription { font-size: 19px; text-shadow: 0 1px 12px rgba(5, 5, 6, 0.95), 0 0 3px rgba(5, 5, 6, 0.8); }
+.note { font-size: 12.5px; text-shadow: 0 1px 10px rgba(5, 5, 6, 0.95); }
+.dwell-label { font-size: 12px; }
+.dwell-track { background: rgba(233, 226, 211, 0.24); }
+
+/* Choose: the tone cards sit on a panel instead of floating over the sphere */
+.choose-block { background: rgba(5, 5, 6, 0.82); border-color: var(--rule); }
+.choose-block .tone .tone-name { font-size: 14px; }
+.choose-block .tone .tone-feel { font-size: 14.5px; }
+.choose-block .choose-sub { font-size: 17px; }
+
+/* Small print */
+.step-label { font-size: 12.5px; }
+.story-cue { font-size: 12.5px; }
+.intro-block .small { font-size: 15.5px; }
+.intro-warn { font-size: 15.5px; }
+.cam-legend { font-size: 11px; }
+.leave-btn, .quiet-btn, .sound-btn { font-size: 12.5px; }
+.sound-btn, .leave-btn { text-shadow: 0 1px 8px rgba(5, 5, 6, 0.95); }
+.sound-btn { background: rgba(5, 5, 6, 0.55); }
+
+/* Words laid over the sphere during the sitting */
+.voice {
+    padding: 0.5em 1.1em;
+    background: rgba(5, 5, 6, 0.64);
+    border-radius: 6px;
+}
+.voice.is-visible { opacity: 1; }
+.hint { text-shadow: 0 0 18px rgba(5, 5, 6, 1), 0 2px 8px rgba(5, 5, 6, 0.95); }
+.hint.is-visible { opacity: 1; }
+.stage { text-shadow: 0 1px 12px rgba(5, 5, 6, 0.95); }
+#mark { text-shadow: 0 1px 10px rgba(5, 5, 6, 0.95); }
+.story-line { text-shadow: 0 0 22px rgba(5, 5, 6, 0.95), 0 2px 8px rgba(5, 5, 6, 0.9); }
+.story-line.is-visible { opacity: 1; }
+.return-line { text-shadow: 0 0 24px rgba(5, 5, 6, 0.95), 0 2px 8px rgba(5, 5, 6, 0.9); }
+
+/* Attract text backing (9 Nov 2026): keep title/sub readable over the bright sphere, incl. fan mode */
+body.fan-mode .attract-block {
+  background: radial-gradient(ellipse at center, rgba(5, 5, 6, 0.78) 0%, rgba(5, 5, 6, 0.62) 55%, rgba(5, 5, 6, 0) 100%);
+  padding: 22px 34px;
+  border-radius: 12px;
+}
+body.fan-mode .attract-block .attract-title,
+body.fan-mode .attract-block .attract-sub,
+body.fan-mode .attract-block .attract-hint {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 14px rgba(0, 0, 0, 0.9);
+}
+/* Camera note is tappable to retry when the camera failed (9 Nov 2026) */
+#sensor-note { pointer-events: auto; z-index: 5; }
+body.fan-mode #sensor-note { pointer-events: none; }
+
+/* ==========================================================================
+   EXPERIENCE PASS (9 Nov 2026): presence cue, softer transitions, phone polish
+   ========================================================================== */
+.presence {
+    position: fixed;
+    left: 26px;
+    bottom: 22px;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px 8px 12px;
+    border-radius: 999px;
+    background: rgba(5, 5, 6, 0.55);
+    border: 1px solid rgba(233, 226, 211, 0.16);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink-dim);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease), border-color 0.4s;
+    pointer-events: none;
+}
+.presence.is-on { opacity: 1; transform: none; }
+.presence-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #c9a85e;
+    box-shadow: 0 0 10px rgba(201, 168, 94, 0.7);
+    transition: transform 0.12s linear, background 0.4s, box-shadow 0.4s;
+}
+.presence[data-mode="moving"] { border-color: rgba(201, 168, 94, 0.55); color: var(--ink); }
+.presence[data-mode="moving"] .presence-dot { background: #f0d890; box-shadow: 0 0 16px rgba(240, 216, 144, 0.95); }
+.presence[data-mode="still"] .presence-dot { background: #aeb8c4; box-shadow: 0 0 10px rgba(174, 184, 196, 0.7); }
+body.fan-mode .presence { display: none; }
+
+/* Screens drift in and out instead of just fading */
+.layer > * { transition: transform 1.4s var(--ease); transform: translateY(14px); }
+.layer.is-visible > * { transform: none; }
+.layer > .note, .layer > .inscription { transform: none; }
+
+/* Phones and tablets */
+@supports (padding: max(0px)) {
+    #mark { top: max(16px, env(safe-area-inset-top)); left: max(18px, env(safe-area-inset-left)); }
+    .sound-btn { right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom)); }
+    #attract { padding-bottom: max(6.5vh, calc(env(safe-area-inset-bottom) + 20px)); }
+}
+button, .tone, .text-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+@media (max-width: 640px) {
+    .presence { left: 50%; bottom: 58px; transform: translate(-50%, 6px); font-size: 11px; }
+    .presence.is-on { transform: translate(-50%, 0); }
+    .attract-title { font-size: clamp(24px, 8vw, 32px); }
+    .attract-sub { font-size: 17px; margin-bottom: 16px; }
+    .big-btn { min-height: 48px; }
+    .tone { min-height: 64px; }
+}
+@media (max-height: 480px) and (orientation: landscape) {
+    .attract-block { margin-top: 0; }
+    .attract-sub { margin-bottom: 10px; }
+    #attract { padding-top: 4vh; padding-bottom: 4vh; }
+    .presence { bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .layer > *, .presence { transition-duration: 0.01ms; transform: none; }
+}
+@media (max-width: 640px) {
+    .presence { left: auto; right: 14px; top: max(14px, env(safe-area-inset-top)); bottom: auto; transform: translateY(-6px); }
+    .presence.is-on { transform: none; }
+}
+@media (max-width: 640px) {
+    .presence { padding: 7px; gap: 0; }
+    .presence-text { display: none; }
+    .presence-dot { width: 10px; height: 10px; }
+    #attract { padding-bottom: max(112px, calc(env(safe-area-inset-bottom) + 100px)); }
+    .note { bottom: max(56px, calc(env(safe-area-inset-bottom) + 44px)); padding: 0 22px; line-height: 1.5; }
 }

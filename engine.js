@@ -101,7 +101,17 @@ function stageLerpColor(hexes, p, out) {
 
 /* ==========================================================================
    STILLNESS SENSOR
+   Motion is the share of the picture that really changed, not the average change.
+   A waving hand covers a small part of a webcam frame; averaging the whole frame
+   diluted it to nothing. We count the cells that changed by more than the room's
+   own noise, against a frame about 100 ms old so slow movement shows up too.
    ========================================================================== */
+const SENSOR_LAG = 3;            // compare with the frame this many camera frames back (~100 ms)
+const SENSOR_MIN_STEP = 10;      // smallest brightness change (0-255) that counts as movement
+const SENSOR_NOISE_K = 3.5;      // a cell must change by this many times the room's own noise
+const SENSOR_FRAC_FLOOR = 0.004; // share of the picture moving that still counts as stillness
+const SENSOR_FRAC_SPAN = 0.03;   // further share of the picture that takes motion from 0 to 1
+
 class StillnessSensor {
     constructor() {
         this.enabled = true;
@@ -112,8 +122,12 @@ class StillnessSensor {
         this.grid.width = 64;
         this.grid.height = 48;
         this.gctx = this.grid.getContext('2d', { willReadFrequently: true });
-        this.prevLuma = null;
-        this.noiseFloor = 1.2;
+        this.lumaRing = [];      // recent 64x48 brightness grids, oldest first
+        this.lastVideoTime = -1;
+        this.lastSampleWall = 0;
+        this.diffHist = new Uint16Array(1024);
+        this.diffBuf = new Float32Array(64 * 48);
+        this.changedFraction = 0;
 
         this.cameraMotion = 0;   // 0..1
         this.pointerMotion = 0;  // 0..1
@@ -175,10 +189,12 @@ class StillnessSensor {
             await v.play().catch(() => {});
             this.video = v;
             this.source = 'camera';
-            this.prevLuma = null;
+            this.lumaRing = [];
+            this.lastVideoTime = -1;
             return true;
         } catch (err) {
             console.info('Camera unavailable, using pointer fallback:', err && err.name);
+            this.lastError = (err && err.name) || 'unknown';
             this.source = 'pointer';
             return false;
         }
@@ -190,7 +206,7 @@ class StillnessSensor {
             this.stream = null;
         }
         this.video = null;
-        this.prevLuma = null;
+        this.lumaRing = [];
         this.cameraMotion = 0;
         this.source = 'pointer';
     }
@@ -206,34 +222,68 @@ class StillnessSensor {
     }
 
     sampleCamera() {
-        if (!this.cameraReady) return;
+        if (!this.cameraReady) {
+            // A stalled or muted camera must not leave the last reading stuck on forever
+            this.cameraMotion *= 0.9;
+            return;
+        }
+        // Only look when the camera has delivered a new frame, but never stall if currentTime does not advance
+        const now = performance.now();
+        const vt = this.video.currentTime;
+        if (vt === this.lastVideoTime && now - this.lastSampleWall < 400) return;
+        this.lastVideoTime = vt;
+        this.lastSampleWall = now;
+
         const w = this.grid.width, h = this.grid.height;
         this.gctx.drawImage(this.video, 0, 0, w, h);
         const data = this.gctx.getImageData(0, 0, w, h).data;
         const n = w * h;
-        if (!this.prevLuma) this.prevLuma = new Float32Array(n);
-        let sum = 0, bright = 0;
+        const luma = new Float32Array(n);
+        let bright = 0;
         for (let i = 0; i < n; i++) {
             const j = i * 4;
             const l = data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114;
-            sum += Math.abs(l - this.prevLuma[i]);
+            luma[i] = l;
             bright += l;
-            this.prevLuma[i] = l;
         }
-        const raw = sum / n; // mean absolute luma difference, 0..255
         this.meanLuma = lerp(this.meanLuma || 0, bright / n, 0.05);
         // A covered, black or failed feed must not read as perfect stillness
         this.cameraDark = this.meanLuma < 6;
+        this.lumaRing.push(luma);
+        if (this.lumaRing.length > SENSOR_LAG + 1) this.lumaRing.shift();
         if (this.cameraDark) { this.cameraMotion = 0; return; }
+        if (this.lumaRing.length <= SENSOR_LAG) return;
 
-        // Learn the sensor noise floor slowly, only when the scene looks quiet
-        if (raw < this.noiseFloor * 3) {
-            this.noiseFloor = lerp(this.noiseFloor, raw, 0.01);
+        const prev = this.lumaRing[0];
+        const hist = this.diffHist, diff = this.diffBuf;
+        hist.fill(0);
+        for (let i = 0; i < n; i++) {
+            const d = Math.abs(luma[i] - prev[i]);
+            diff[i] = d;
+            hist[Math.min(1023, (d * 4) | 0)]++;
         }
-        this.noiseFloor = Math.max(0.3, Math.min(6, this.noiseFloor));
+        // The median change is the room's own noise (or a whole-frame exposure shift).
+        // A hand covers far less than half the picture, so it cannot drag the median up,
+        // and the threshold follows a grainy webcam or dim room automatically.
+        let acc = 0, bin = 0;
+        while (bin < 1023 && (acc += hist[bin]) < n / 2) bin++;
+        const noise = ((bin + 0.5) / 4) / 0.6745;
+        const thr = Math.max(SENSOR_MIN_STEP, SENSOR_NOISE_K * noise);
+        let changed = 0, sx = 0, sy = 0;
+        for (let i = 0; i < n; i++) {
+            if (diff[i] > thr) { changed++; sx += i % w; sy += (i / w) | 0; }
+        }
+        const frac = changed / n;
+        this.changedFraction = frac;
+        // Where the movement is, mirrored like a reflection: -1..1 (x right, y up)
+        if (changed > 6) {
+            const tx = (1 - (sx / changed) / (w - 1)) * 2 - 1;
+            const ty = 1 - ((sy / changed) / (h - 1)) * 2;
+            this.motionX = lerp(this.motionX || 0, tx, 0.5);
+            this.motionY = lerp(this.motionY || 0, ty, 0.5);
+        }
 
-        const excess = Math.max(0, raw - this.noiseFloor * 1.8);
-        const m = clamp01(excess / 7.0);
+        const m = clamp01((frac - SENSOR_FRAC_FLOOR) / SENSOR_FRAC_SPAN);
         // Fast attack, moderate release
         this.cameraMotion = m > this.cameraMotion ? lerp(this.cameraMotion, m, 0.6) : lerp(this.cameraMotion, m, 0.15);
     }
@@ -519,6 +569,18 @@ class LiminalEngine3D {
         rg.addColorStop(1, 'rgba(180,140,90,0)');
         ctx.fillStyle = rg;
         ctx.fillRect(0, 0, w, h);
+
+        // Softbox strips: tall bright bars give the liquid crisp, travelling highlights
+        [[0.06, 9, 0.85], [0.37, 14, 0.7], [0.63, 9, 0.8], [0.93, 14, 0.75]].forEach(([u, bw, a]) => {
+            const sx = w * u - bw / 2;
+            const sg = ctx.createLinearGradient(0, h * 0.14, 0, h * 0.64);
+            sg.addColorStop(0, 'rgba(235,242,255,0)');
+            sg.addColorStop(0.2, 'rgba(235,242,255,' + a + ')');
+            sg.addColorStop(0.8, 'rgba(235,242,255,' + a + ')');
+            sg.addColorStop(1, 'rgba(235,242,255,0)');
+            ctx.fillStyle = sg;
+            ctx.fillRect(sx, h * 0.14, bw, h * 0.5);
+        });
 
         // Horizon hairline
         ctx.fillStyle = 'rgba(230,210,170,0.18)';
@@ -921,7 +983,8 @@ class LiminalEngine3D {
         const motion = this.sensor.motion;
 
         // Shatter target: move and the metal dissolves; stop and it gathers
-        if (motion > 0.35) this.shatterTarget = Math.min(1, this.shatterTarget + dt * 2.4);
+        // Responsive: gentle movement starts to break the metal at once; strong movement shatters it in ~0.3 s
+        if (motion > 0.18) this.shatterTarget = Math.min(1, this.shatterTarget + dt * (1.5 + motion * 7));
         else if (s > 0.55) this.shatterTarget = Math.max(0, this.shatterTarget - dt * 1.1);
         else this.shatterTarget = Math.max(0, this.shatterTarget - dt * 0.35);
         this.shatter = lerp(this.shatter, this.shatterTarget, clamp01(dt * 4));
@@ -948,9 +1011,9 @@ class LiminalEngine3D {
         const m = this.core.material;
         // Colour: oily pitch -> quicksilver -> pale gold -> gold
         stageLerpColor([0x16151a, 0xc4c8cf, 0xdcb85c, 0xf7c744], p, m.color);
-        m.roughness = stageLerp([0.5, 0.2, 0.09, 0.04], p);
+        m.roughness = stageLerp([0.34, 0.16, 0.08, 0.04], p);
         m.metalness = stageLerp([1.0, 1.0, 0.97, 0.93], p);
-        m.envMapIntensity = stageLerp([0.7, 1.1, 1.4, 1.7], p);
+        m.envMapIntensity = stageLerp([0.95, 1.25, 1.45, 1.7], p);
         m.clearcoatRoughness = stageLerp([0.14, 0.08, 0.05, 0.02], p);
 
         // Inner glow in the tone's colour. It beats with the drum and flares when the
@@ -1018,14 +1081,15 @@ class LiminalEngine3D {
         const base = this.coreBase, disp = this.coreDisp, nrm = this.coreNrm, map = this.coreMap;
         const n = this.coreUniqueCount;
         // Liquid at Caput Corvi, settling to glass at Rubedo. Motion agitates it.
-        const amp = stageLerp([0.11, 0.06, 0.028, 0.006], p) + motion * 0.06;
+        const amp = stageLerp([0.09, 0.05, 0.024, 0.006], p) + motion * 0.06;
         const speed = lerp(1.7, 0.6, p);
         const fineMix = 0.4 * (1 - p);
         // Slow swells that travel across the surface rather than just wobbling in place
-        const swellMix = lerp(0.9, 0.25, p);
+        const swellMix = lerp(0.7, 0.25, p);
         // Drum ripple: a ring that runs from the top pole to the bottom on every hit
         const rippleAmp = lerp(0.07, 0.014, p) * Math.exp(-beatAge * 2.4);
         const rippleFront = beatAge * 7.5;
+        const hs = this._handS || 0, hc = this._handC;
 
         // Displace the unique vertices along their radial direction
         for (let u = 0; u < n; u++) {
@@ -1038,7 +1102,16 @@ class LiminalEngine3D {
             // angle from the top pole, 0..pi
             const ang = Math.acos(Math.max(-1, Math.min(1, y / len)));
             const ripple = rippleAmp > 0.0005 ? Math.sin(ang * 9 - rippleFront) * rippleAmp / amp : 0;
-            const d = (wave + fine + swell + ripple) * amp / len;
+            // Your hand disturbs the metal: a bulge under it with rings spreading outward
+            let handTerm = 0;
+            if (hs > 0.02) {
+                const hx = x - hc.x, hy = y - hc.y, hz = z - hc.z;
+                const d2 = hx * hx + hy * hy + hz * hz;
+                if (d2 < 3) {
+                    handTerm = Math.exp(-d2 * 1.8) * hs * (0.05 + 0.08 * Math.sin(Math.sqrt(d2) * 12 - t * 9));
+                }
+            }
+            const d = ((wave + fine + swell + ripple) * amp + handTerm) / len;
             disp[u * 3] = x + x * d;
             disp[u * 3 + 1] = y + y * d;
             disp[u * 3 + 2] = z + z * d;
@@ -1077,8 +1150,29 @@ class LiminalEngine3D {
 
     /* ---------------- frame ---------------- */
 
+    // Watches the real frame rate and quietly lowers the render cost on slower machines
+    adaptQuality() {
+        const now = performance.now();
+        const raw = now - (this._perfLast || now);
+        this._perfLast = now;
+        if (document.hidden || raw > 500 || raw <= 0) return;
+        this._perfAvg = this._perfAvg ? this._perfAvg * 0.95 + raw * 0.05 : raw;
+        this._perfFrames = (this._perfFrames || 0) + 1;
+        if (this._perfFrames < 150 || now - (this._perfStepAt || 0) < 4000) return;
+        if (this._perfAvg > 26) { // under about 38 fps
+            this._perfStepAt = now;
+            this._perfAvg = 0; this._perfFrames = 60;
+            const r = this.renderer, pr = r.getPixelRatio();
+            if (pr > 1.01) { r.setPixelRatio(Math.max(1, pr - 0.5)); r.setSize(window.innerWidth, window.innerHeight); }
+            else if (this.key.castShadow) { this.key.castShadow = false; this.core.castShadow = false; this.core.receiveShadow = false; this.core.material.needsUpdate = true; }
+            this.envEvery = Math.min(5, (this.envEvery || 2) + 1);
+            console.info('Liminal: lowered render quality to keep it smooth');
+        }
+    }
+
     tick() {
         requestAnimationFrame(() => this.tick());
+        this.adaptQuality();
         const dt = Math.min(0.05, this.clock.getDelta());
         this.time += dt;
         const t = this.time;
@@ -1101,10 +1195,12 @@ class LiminalEngine3D {
 
         // Environment: refresh the mirror from the camera every other frame
         this.envFrame++;
-        if (this.envFrame % 2 === 0 || this.envDirty) this.updateEnvironment();
+        if (this.envFrame % (this.envEvery || 2) === 0 || this.envDirty) this.updateEnvironment();
 
         // Camera eases in during a session; citrinitas pulls slightly closer
-        const zoom = this.cameraTargetZ - (p > 0.5 && p < 0.85 ? (p - 0.5) * 0.6 : 0);
+        // Portrait screens (phones) need the camera pulled back so the rings are not cropped
+        const fit = Math.min(1.9, Math.max(1, 1.15 / this.camera.aspect));
+        const zoom = (this.cameraTargetZ - (p > 0.5 && p < 0.85 ? (p - 0.5) * 0.6 : 0)) * fit;
         this.camera.position.z = lerp(this.camera.position.z, zoom, dt * 0.8);
         this.camera.lookAt(0, 0, 0);
 
@@ -1136,6 +1232,30 @@ class LiminalEngine3D {
         this.group.rotation.z = Math.sin(t * 0.15) * 0.08 * this.kaleido;
         this.group.rotation.y += dt * spin;
         this.group.position.y = Math.sin(t * 0.8) * 0.05 * (1 - this.kaleido * 0.5);
+        // The whole piece leans toward where you are moving, like a reflection following your hand
+        {
+            const lean = clamp01(motion * 1.8);
+            const lx = (this.sensor.motionX || 0) * lean, ly = (this.sensor.motionY || 0) * lean;
+            this._leanX = lerp(this._leanX || 0, lx, clamp01(dt * 6));
+            this._leanY = lerp(this._leanY || 0, ly, clamp01(dt * 6));
+            this.group.position.x = this._leanX * 0.38;
+            this.group.position.y += this._leanY * 0.25;
+            this.group.rotation.x = -this._leanY * 0.28;
+            this.group.rotation.z += this._leanX * 0.12;
+
+            // Where your hand is, in the space of the group and of the metal itself
+            const T = THREE;
+            if (!this._handW) {
+                this._handW = new T.Vector3(); this._handG = new T.Vector3();
+                this._handC = new T.Vector3(); this._invCore = new T.Matrix4();
+            }
+            this._handW.set((this.sensor.motionX || 0) * 1.5, (this.sensor.motionY || 0) * 1.0, 0.9);
+            this._handG.copy(this._handW);
+            this.group.worldToLocal(this._handG);
+            this._invCore.copy(this.core.matrix).invert();
+            this._handC.copy(this._handG).applyMatrix4(this._invCore);
+            this._handS = lerp(this._handS || 0, lean, clamp01(dt * 8));
+        }
 
         // Soft FOV pulse on the beat — pulls the eye in without leaving the centre
         const fovTarget = 42 - this.kaleido * 6 - beat * 1.2;
@@ -1209,6 +1329,7 @@ class LiminalEngine3D {
         // Dissolve (albedo) adds orbital droplets even when gathered
         const dissolve = clamp01((p - 0.22) / 0.28) * (1 - clamp01((p - 0.72) / 0.2));
         const amount = Math.max(shatter, dissolve * 0.85);
+        const hs = this._handS || 0, hg = this._handG;
         this.droplets.material.opacity = amount * 0.95;
         this.droplets.material.size = 0.045 + shatter * 0.05 + beat * 0.035 + dissolve * 0.03;
 
@@ -1226,6 +1347,12 @@ class LiminalEngine3D {
             x = lerp(x, bx * fly, shatter);
             y = lerp(y, by * fly, shatter);
             z = lerp(z, bz * fly, shatter);
+            // Droplets reach toward your hand
+            if (hs > 0.02 && amount > 0.05) {
+                const ddx = hg.x - x, ddy = hg.y - y, ddz = hg.z - z;
+                const w = hs * 0.5 * Math.exp(-(ddx * ddx + ddy * ddy + ddz * ddz) * 0.3);
+                x += ddx * w; y += ddy * w; z += ddz * w;
+            }
             // Coagulate: pull hard toward centre at rubedo
             if (p > 0.78) {
                 const c = (p - 0.78) / 0.22;
@@ -1257,6 +1384,7 @@ class LiminalEngine3D {
         this.particles.material.opacity = lerp(0.32, 0.22, p) + beat * 0.12;
         this.particles.material.size = 0.026 + beat * 0.02;
         const turbulence = lerp(0.004, 0.0006, p) + motion * 0.004 + beat * 0.003;
+        const hs = this._handS || 0, hg = this._handG;
 
         for (let i = 0; i < count; i++) {
             const px = pos[i * 3], py = pos[i * 3 + 1], pz = pos[i * 3 + 2];
@@ -1268,6 +1396,19 @@ class LiminalEngine3D {
             vel[i * 3] += (Math.random() - 0.5) * turbulence;
             vel[i * 3 + 1] += (Math.random() - 0.5) * turbulence;
             vel[i * 3 + 2] += (Math.random() - 0.5) * turbulence;
+
+            // Your hand stirs the dust: pushes it away and swirls it around
+            if (hs > 0.02) {
+                const hx = px - hg.x, hy = py - hg.y, hz = pz - hg.z;
+                const hd2 = hx * hx + hy * hy + hz * hz;
+                if (hd2 < 4) {
+                    const hd = Math.sqrt(hd2) || 1;
+                    const push = hs * 0.012 * (1 - hd / 2);
+                    vel[i * 3] += (hx / hd) * push - (hy / hd) * push * 1.5;
+                    vel[i * 3 + 1] += (hy / hd) * push + (hx / hd) * push * 1.5;
+                    vel[i * 3 + 2] += (hz / hd) * push;
+                }
+            }
 
             if (this.ripple.active) {
                 const dx = px - this.ripple.center.x, dy = py - this.ripple.center.y, dz = pz - this.ripple.center.z;
@@ -1456,6 +1597,9 @@ class Installation {
             reflectSkip: document.getElementById('reflect-skip'),
             thanks: document.getElementById('thanks'),
             sensorNote: document.getElementById('sensor-note'),
+            presence: document.getElementById('presence'),
+            presenceText: document.getElementById('presence-text'),
+            presenceDot: document.getElementById('presence-dot'),
             toast: document.getElementById('toast'),
             soundBtn: document.getElementById('sound-btn'),
             soundLabel: document.getElementById('sound-label'),
@@ -1531,7 +1675,7 @@ class Installation {
         this.engine.setTone(this.sessionTuning);
         this.engine.setFanMode(!!s.fanMode);
         this.engine.riseSeconds = Math.max(28, s.durationSeconds * 0.55);
-        this.engine.renderer.setPixelRatio(Math.min(window.devicePixelRatio, s.pixelRatio));
+        this.engine.renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 800 ? Math.min(s.pixelRatio, 1.5) : s.pixelRatio));
         this.sensor.enabled = !!s.camera;
         if (this.el.introDuration) this.el.introDuration.textContent = durationWords(s.durationSeconds);
         if (this.el.attractDwellWrap) {
@@ -1623,9 +1767,31 @@ class Installation {
 
     noteSensor(source) {
         if (!this.el.sensorNote) return;
-        this.el.sensorNote.textContent = source === 'camera'
-            ? 'Camera on. Nothing is recorded or sent. Frames are compared and discarded.'
-            : 'No camera. Stillness is read from touch and movement of this device.';
+        let text;
+        if (source === 'camera') {
+            text = 'Camera on. Nothing is recorded or sent. Frames are compared and discarded.';
+        } else {
+            const e = this.sensor.lastError;
+            let why = 'No camera.';
+            if (e === 'NotAllowedError' || e === 'SecurityError') why = 'Camera blocked. Click the padlock or camera icon beside the address, set Camera to Allow, then tap here.';
+            else if (e === 'NotFoundError' || e === 'OverconstrainedError') why = 'No camera found on this device.';
+            else if (e === 'NotReadableError' || e === 'AbortError') why = 'The camera is busy in another app or tab. Close it, then tap here.';
+            else if (!this.settings.camera) why = 'Camera is switched off in settings.';
+            else if (e) why = 'Camera could not start (' + e + '). Tap here to try again.';
+            text = why + ' Meanwhile stillness is read from touch and mouse.';
+        }
+        this.el.sensorNote.textContent = text;
+        this.el.sensorNote.style.cursor = source === 'camera' ? '' : 'pointer';
+        if (!this._sensorNoteWired) {
+            this._sensorNoteWired = true;
+            this.el.sensorNote.addEventListener('click', (ev) => {
+                if (this.sensor.source === 'camera') return;
+                ev.stopPropagation();
+                this.el.sensorNote.textContent = 'Asking for the camera…';
+                this.settings.camera = true;
+                this.startSensor();
+            });
+        }
         if (this.camTestOpen) this.refreshCamTest();
     }
 
@@ -2290,8 +2456,42 @@ class Installation {
 
         if (A && A.isActive) A.setOpus(this.engine.opus);
 
+        // Presence cue: tells the visitor, before they begin, that the piece can see them
+        if (this.el.presence) {
+            const pre = ['attract', 'choose', 'story', 'threshold'].indexOf(this.state) >= 0;
+            const live = pre && this.sensor.activeSource === 'camera';
+            this.el.presence.classList.toggle('is-on', live);
+            if (live) {
+                const mv = this.sensor.motion;
+                const mode = mv > 0.2 ? 'moving' : (this.sensor.stillness > 0.8 ? 'still' : 'watching');
+                if (mode !== this._presenceMode) {
+                    this._presenceMode = mode;
+                    this.el.presence.dataset.mode = mode;
+                    this.el.presenceText.textContent = mode === 'moving' ? 'I can see you move' : (mode === 'still' ? 'Still. The metal is gathering' : 'The camera is watching');
+                }
+                this.el.presenceDot.style.transform = 'scale(' + (1 + clamp01(mv * 1.4) * 1.6).toFixed(2) + ')';
+            }
+        }
+
         if (this.camTestOpen && this.el.camLevel) {
             this.el.camLevel.style.transform = `scaleX(${clamp01(this.sensor.motion * 1.6).toFixed(3)})`;
+        }
+
+        // Camera watchdog: say so on screen if the camera is open but not delivering a usable picture
+        if (this.sensor.source === 'camera' && this.el.sensorNote && now - (this._camCheckAt || 0) > 1000) {
+            this._camCheckAt = now;
+            const s = this.sensor;
+            let kind = 'ok';
+            if (!s.cameraReady) kind = 'stalled';
+            else if (s.cameraDark) kind = 'dark';
+            this._camBadFor = kind === 'ok' ? 0 : (this._camBadFor || 0) + 1;
+            const shown = this._camBadFor >= 3 ? kind : 'ok';
+            if (shown !== this._camNoteKind) {
+                this._camNoteKind = shown;
+                if (shown === 'stalled') this.el.sensorNote.textContent = 'The camera is open but sending no picture. Another app may be using it. Movement is read from touch and mouse for now.';
+                else if (shown === 'dark') this.el.sensorNote.textContent = 'The camera sees only darkness. Uncover the lens or light the room.';
+                else this.noteSensor('camera');
+            }
         }
 
         // Hands-free sit-to-begin on Attract

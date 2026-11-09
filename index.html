@@ -8,7 +8,7 @@
     <title>Liminal Engine</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23c9a24a' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%23c9a24a'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="stylesheet" href="style.css?v=20261109a">
+    <link rel="stylesheet" href="style.css?v=20261109k">
     <script src="three.min.js"></script>
     <script>if (typeof THREE === 'undefined') { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>'); }</script>
 </head>
@@ -36,6 +36,7 @@
         </svg>
         <span id="sound-label">Sound on</span>
     </button>
+    <div id="presence" class="presence" aria-hidden="true"><span id="presence-dot" class="presence-dot"></span><span id="presence-text" class="presence-text"></span></div>
 
     <!-- Attract: the sphere is live at rest, breathing with the room. -->
     <section id="attract" class="layer is-visible" aria-hidden="false">
@@ -257,7 +258,7 @@
 
     <div id="toast" role="status" aria-live="polite"></div>
 
-    <script src="audio.js?v=20261109a"></script>
-    <script src="engine.js?v=20261109a"></script>
+    <script src="audio.js?v=20261109k"></script>
+    <script src="engine.js?v=20261109k"></script>
 </body>
 </html>
