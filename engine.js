@@ -17,21 +17,22 @@
 'use strict';
 
 const STAGES = [
-    { key: 'corvus',    label: 'Caput Corvi',    from: 0.00 },
-    { key: 'albedo',     label: 'Albedo',     from: 0.25 },
-    { key: 'citrinitas', label: 'Citrinitas', from: 0.50 },
-    { key: 'rubedo',     label: 'Rubedo',     from: 0.75 }
+    // Plain English on screen. The alchemical names (raven, whitening, yellowing, reddening) live in the docs.
+    { key: 'corvus',     label: 'Black',  from: 0.00 },
+    { key: 'albedo',     label: 'Silver', from: 0.25 },
+    { key: 'citrinitas', label: 'Gold',   from: 0.50 },
+    { key: 'rubedo',     label: 'Mirror', from: 0.75 }
 ];
 
 // The six tones a visitor can choose. Each carries a planet, its metal, and the colour the
 // room takes: `room` tints the wall, fog and air; `glow` is the halo behind the sphere.
 const TONES = [
     { key: '396', hz: 396, planet: 'Saturn',  metal: 'Lead',        room: 0x2c3150, glow: 0x5d64a6, feel: 'Heavy. Grounded. The weight of the day.' },
-    { key: '432', hz: 432, planet: 'Sol',     metal: 'Gold',        room: 0x4a3418, glow: 0xd9a34a, feel: 'Warm. Steady. Like sunlight on closed eyes.' },
+    { key: '432', hz: 432, planet: 'Sun',     metal: 'Gold',        room: 0x4a3418, glow: 0xd9a34a, feel: 'Warm. Steady. Like sunlight on closed eyes.' },
     { key: '528', hz: 528, planet: 'Venus',   metal: 'Copper',      room: 0x1c4a40, glow: 0x3fae8c, feel: 'Soft. Open. The colour of green water.' },
     { key: '639', hz: 639, planet: 'Jupiter', metal: 'Tin',         room: 0x1f3a6e, glow: 0x4f86e0, feel: 'Wide. Clear. A big sky.' },
     { key: '741', hz: 741, planet: 'Mercury', metal: 'Quicksilver', room: 0x2a4a54, glow: 0x7cc0cf, feel: 'Quick. Bright. Thought itself.' },
-    { key: '852', hz: 852, planet: 'Luna',    metal: 'Silver',      room: 0x3a4150, glow: 0xb7c3d8, feel: 'Cool. Quiet. Night.' }
+    { key: '852', hz: 852, planet: 'Moon',    metal: 'Silver',      room: 0x3a4150, glow: 0xb7c3d8, feel: 'Cool. Quiet. Night.' }
 ];
 function toneFor(key) { return TONES.find(t => t.key === String(key)) || TONES[1]; }
 
@@ -42,21 +43,29 @@ function durationWords(seconds) {
 
 // The guide voice. Timed from the start of the work.
 // Opens by answering the one question every visitor has: what does this want from me?
+// Told in the dark, one line per touch. The visitor sets the pace.
+const STORY = [
+    'The alchemists called quicksilver the mind: bright, fluid, impossible to hold.',
+    'Their whole art was to still it until it turned to gold and became a mirror.',
+    'Every screen in your life is built to keep the quicksilver moving.',
+    'This one is built to let it stop.',
+    'Move, and the sphere shatters.',
+    'Be still, and it will show you your face.'
+];
+
+// The story has already been told in the dark. The sitting opens on the lesson itself.
 const VOICE = [
-    { at: 0.3,  text: 'This wants one thing from you.', hold: 2.6 },
-    { at: 3.2,  text: 'Your stillness.', hold: 2.4 },
-    { at: 6.2,  text: 'Move.', command: true, hold: 2.0 },
-    { at: 8.8,  text: 'Now stop.', command: true, hold: 2.2 },
-    { at: 11.5, text: 'That is the whole method. Shatter. Gather.', hold: 3.2 },
-    { at: 15.2, text: 'The sphere is quicksilver. The alchemists called it the mind.', hold: 3.6 },
-    { at: 19.5, text: 'Everything you carried in here is in it.', hold: 3.0 },
+    { at: 1.2,  text: 'Move.', command: true, hold: 2.0 },
+    { at: 4.0,  text: 'Now stop.', command: true, hold: 2.2 },
+    { at: 7.0,  text: 'That is the whole method. Shatter. Gather.', hold: 3.2 },
+    { at: 13.0, text: 'Everything you carried in here is in the sphere.', hold: 3.0 },
     { at: 23.5, text: 'Let it burn. Do not move.', hold: 3.0, needStill: true },
     { at: 30.0, text: 'Dissolve.', command: true, hold: 2.0, needStill: true },
     { at: 34.0, text: 'You do not have to hold it together.', hold: 3.0 },
     { at: 39.0, text: 'Follow the drum.', hold: 2.8 },
     { at: 50.0, text: 'You are the only thing in this room that is still.', hold: 3.6, needStill: true },
     { at: 56.0, text: 'Go inward.', hold: 2.6 },
-    { at: 70.0, text: 'Solve et coagula.', hold: 3.0, needStill: true },
+    { at: 70.0, text: 'It has gathered. So have you.', hold: 3.0, needStill: true },
     { at: 75.0, text: 'This is what is left when you stop.', hold: 4.0 }
 ];
 
@@ -583,7 +592,7 @@ class LiminalEngine3D {
             emissiveIntensity: 1.0
         });
         this.core = new THREE.Mesh(geometry, material);
-        this.beatAge = 10;          // seconds since the last drum hit (drives the surface ripple)
+        this.beatAge = 10;          // seconds since the last heartbeat (drives the surface ripple)
         this._lastBeatCount = 0;
         this.core.castShadow = true;
         this.core.receiveShadow = true;
@@ -648,10 +657,10 @@ class LiminalEngine3D {
             if (this.inscriptions.length) {
                 return this.inscriptions.slice(0, 3).map(s => s.length > 48 ? s.slice(0, 46).trim() + '…' : s);
             }
-            return ['Solve et Coagula', 'Be still', 'Solve et Coagula', 'Be still'];
+            return ['Shatter · Gather', 'Be still', 'Shatter · Gather', 'Be still'];
         }
-        if (i === 1) return ['Caput Corvi', 'Albedo', 'Citrinitas', 'Rubedo'];
-        return ['Visita Interiora Terrae', 'Rectificando Invenies', 'Occultum Lapidem'];
+        if (i === 1) return ['Black', 'Silver', 'Gold', 'Mirror'];
+        return ['Go inward', 'Set things right', 'Find what is hidden'];
     }
 
     drawRing(i) {
@@ -983,8 +992,11 @@ class LiminalEngine3D {
         if (this.fanMode) {
             this.renderer.setClearColor(0x000000);
             this.scene.fog.color.setHex(0x000000);
-            this.scene.fog.density = lerp(0.04, 0.015, p);
-            this.ambient.color.copy(this.paletteGlow).multiplyScalar(0.35);
+            this.scene.fog.density = lerp(0.03, 0.01, p);
+            this.ambient.color.copy(this.paletteGlow).multiplyScalar(0.45);
+            // Boost specular & rim highlights so liquid metal pops on LED fan blades
+            this.rim.intensity *= 1.35;
+            m.envMapIntensity *= 1.25;
         } else {
             this.wall.material.color.copy(this._roomColor);
             this.scene.fog.color.copy(this._roomColor).multiplyScalar(0.6);
@@ -1077,10 +1089,12 @@ class LiminalEngine3D {
         const motion = this.sensor.motion;
         const shatter = this.shatter;
 
+        // The sphere breathes with the slow heartbeat, not the drum. The drum is a back
+        // beat the body follows; the eye gets one soft swell a second, slowing to the gold.
         const A = window.AlchemicalAudio;
         if (A) A.tickBeat(dt);
-        const beat = A ? A.beatPulse : 0;
-        if (A && A.beatCount !== this._lastBeatCount) { this._lastBeatCount = A.beatCount; this.beatAge = 0; }
+        const beat = A ? A.heartPulse : 0;
+        if (A && A.heartCount !== this._lastBeatCount) { this._lastBeatCount = A.heartCount; this.beatAge = 0; }
         else this.beatAge += dt;
 
         this.applyStageVisuals(p, dt, beat, motion);
@@ -1239,7 +1253,7 @@ class LiminalEngine3D {
         stageLerpColor([0x5a4e3e, 0x9fa3a8, 0xc9a85e, 0xe0be6e], p, near);
         stageLerpColor([0x14110e, 0x2c2f33, 0x3a2c12, 0x4a3a18], p, far);
         const A = window.AlchemicalAudio;
-        const beat = A ? A.beatPulse : 0;
+        const beat = A ? A.heartPulse : 0;
         this.particles.material.opacity = lerp(0.32, 0.22, p) + beat * 0.12;
         this.particles.material.size = 0.026 + beat * 0.02;
         const turbulence = lerp(0.004, 0.0006, p) + motion * 0.004 + beat * 0.003;
@@ -1337,6 +1351,12 @@ class LiminalEngine3D {
 /* ==========================================================================
    INSTALLATION — visitor flow
    ========================================================================== */
+const DEFAULT_REFLECTIONS = [
+    { text: 'I heard my own heartbeat slow down to match the drum.', at: '2026-09-01T12:00:00.000Z' },
+    { text: 'When I stopped trying to look at myself, the mirror finally appeared.', at: '2026-09-02T15:30:00.000Z' },
+    { text: 'The room grew very quiet before the gold arrived.', at: '2026-09-03T18:10:00.000Z' }
+];
+
 class Installation {
     constructor(engine, sensor) {
         this.engine = engine;
@@ -1348,33 +1368,72 @@ class Installation {
             idleSeconds: 60,
             tuning: '432',
             bellows: true,
-            bellowsPattern: 'heartbeat',
+            bellowsPattern: 'shamanic',
             volume: 60,
             camera: true,
+            handsFree: true,
+            voiceMic: true,
             visitorChoice: true,
             fanMode: false,
             pixelRatio: 2,
-            settingsVersion: 4
+            settingsVersion: 6
         }, this.loadSettings());
-        // Migrate older installs onto the narrative defaults
+        // Migrate older installs onto the current defaults
         if ((this.settings.settingsVersion || 0) < 4) {
-            this.settings.bellowsPattern = 'heartbeat';
             this.settings.durationSeconds = 90;
-            this.settings.settingsVersion = 4;
         }
+        if ((this.settings.settingsVersion || 0) < 6) {
+            this.settings.bellowsPattern = 'shamanic';
+            this.settings.handsFree = true;
+            this.settings.voiceMic = true;
+            this.settings.settingsVersion = 6;
+        }
+
+        // Allow URL query parameters for curator/jury links (?fan=1, ?handsfree=1, ?duration=60)
+        try {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('fan')) this.settings.fanMode = params.get('fan') === '1' || params.get('fan') === 'true';
+            if (params.has('handsfree')) this.settings.handsFree = params.get('handsfree') !== '0' && params.get('handsfree') !== 'false';
+            if (params.has('duration')) {
+                const d = parseInt(params.get('duration'), 10);
+                if (d >= 15 && d <= 600) this.settings.durationSeconds = d;
+            }
+        } catch (e) {}
 
         // The visitor's choices for this sitting. They start from the curator's defaults
         // and go back to them when the piece returns to attract.
         this.sessionTuning = this.settings.tuning;
         this.sessionBellows = this.settings.bellows;
+        this.autoToneIndex = TONES.findIndex(t => t.key === String(this.settings.tuning));
+        if (this.autoToneIndex < 0) this.autoToneIndex = 1;
+
+        // Hands-free sit-to-begin state
+        this.visitorArrived = true; // Ready for first sitter on boot; requires motion reset between sessions
+        this.attractDwell = 0;      // 0..1 progress of holding still to begin
+        this.lastLoopTime = performance.now();
+
+        // Speech recognition for hands-free spoken reflection
+        this.speechRec = null;
+        this.speechListening = false;
+        this._speechAutoSaveTimer = null;
 
         this.el = {
             attract: document.getElementById('attract'),
             attractLine: document.getElementById('attract-inscription'),
             attractBegin: document.getElementById('attract-begin'),
+            attractDwellWrap: document.getElementById('attract-dwell-wrap'),
+            attractDwellLabel: document.getElementById('attract-dwell-label'),
+            attractDwell: document.getElementById('attract-dwell'),
+            story: document.getElementById('story'),
+            storyLine: document.getElementById('story-line'),
+            storyCue: document.getElementById('story-cue'),
+            threshold: document.getElementById('threshold'),
+            thresholdLine: document.getElementById('threshold-line'),
+            thresholdBegin: document.getElementById('threshold-begin'),
             choose: document.getElementById('choose'),
             toneGrid: document.getElementById('tone-grid'),
             chooseBellows: document.getElementById('choose-bellows'),
+            chooseHow: document.getElementById('choose-how'),
             chooseNext: document.getElementById('choose-next'),
             intro: document.getElementById('intro'),
             introBegin: document.getElementById('intro-begin'),
@@ -1388,7 +1447,11 @@ class Installation {
             end: document.getElementById('hud-end'),
             ret: document.getElementById('return'),
             reflect: document.getElementById('reflect'),
+            reflectSub: document.getElementById('reflect-sub'),
             reflectInput: document.getElementById('reflect-input'),
+            reflectMic: document.getElementById('reflect-mic'),
+            reflectMicLabel: document.getElementById('reflect-mic-label'),
+            reflectVoiceStatus: document.getElementById('reflect-voice-status'),
             reflectSave: document.getElementById('reflect-save'),
             reflectSkip: document.getElementById('reflect-skip'),
             thanks: document.getElementById('thanks'),
@@ -1411,6 +1474,7 @@ class Installation {
         this.reflectTimer = null;
         this.currentStageKey = null;
         this.inscriptionIndex = 0;
+        this.storyIndex = -1;
 
         this.reflections = this.loadReflections();
         this.engine.setInscriptions(this.reflections.map(r => r.text));
@@ -1418,6 +1482,7 @@ class Installation {
         this.buildToneGrid();
         this.applySettings();
         this.bind();
+        this.setOrbVisible(true, 1.8);
         this.rotateAttractInscription();
         this.startSensor();
         this.loop();
@@ -1434,9 +1499,14 @@ class Installation {
     loadReflections() {
         try {
             const raw = localStorage.getItem('liminal_reflections');
-            const list = raw ? JSON.parse(raw) : [];
+            if (raw === null) {
+                // Seed starter reflections on a fresh install so the outer ring and attract screen
+                // immediately show visitor sentences. Curators can clear them in Shift+C.
+                return DEFAULT_REFLECTIONS.slice();
+            }
+            const list = JSON.parse(raw);
             return list.filter(r => r && r.text);
-        } catch (e) { return []; }
+        } catch (e) { return DEFAULT_REFLECTIONS.slice(); }
     }
     saveReflections() {
         try { localStorage.setItem('liminal_reflections', JSON.stringify(this.reflections)); } catch (e) {}
@@ -1444,6 +1514,8 @@ class Installation {
 
     applySettings() {
         const s = this.settings;
+        // 3D Fan mode is inherently hands-free (you cannot touch a spinning rotor)
+        if (s.fanMode) s.handsFree = true;
         // Outside a sitting the curator's defaults are what plays and colours the room
         if (this.state === 'attract') {
             this.sessionTuning = s.tuning;
@@ -1462,6 +1534,9 @@ class Installation {
         this.engine.renderer.setPixelRatio(Math.min(window.devicePixelRatio, s.pixelRatio));
         this.sensor.enabled = !!s.camera;
         if (this.el.introDuration) this.el.introDuration.textContent = durationWords(s.durationSeconds);
+        if (this.el.attractDwellWrap) {
+            this.el.attractDwellWrap.hidden = !s.handsFree;
+        }
         this.saveSettings();
         this.syncChoiceUI();
     }
@@ -1494,6 +1569,27 @@ class Installation {
         if (A) { A.setTuning(this.sessionTuning); A.playChime('gold'); }
         this.engine.setTone(this.sessionTuning);
         this.syncChoiceUI();
+        // On the choice screen, the pick is the beginning
+        if (this.state === 'choose') this.beginFromChoice();
+    }
+
+    // The tone is chosen. Picker fades, the sphere rises in that colour, the sitting starts.
+    beginFromChoice() {
+        if (this.state !== 'choose') return;
+        this.state = 'threshold';
+        this.thresholdReady = false;
+        this.show(this.el.choose, false);
+        (this._thresholdTimers || []).forEach(clearTimeout);
+        this._thresholdTimers = [
+            setTimeout(() => {
+                if (this.state !== 'threshold') return;
+                this.setOrbVisible(true, 4.5);
+            }, 1200),
+            setTimeout(() => {
+                if (this.state !== 'threshold') return;
+                this.startWork();
+            }, 4600)
+        ];
     }
 
     toggleBellows() {
@@ -1606,27 +1702,44 @@ class Installation {
         ['pointerdown', 'pointermove', 'keydown', 'touchstart'].forEach(ev =>
             window.addEventListener(ev, activity, { passive: true }));
 
-        // Touch anywhere on the attract screen to begin; the button is the visible invitation
-        const begin = (e) => {
-            if (this.state !== 'attract') return;
-            if (e.target && e.target.closest && e.target.closest('.panel, .modal')) return;
-            this.begin();
-        };
-        window.addEventListener('pointerdown', begin);
+        if (this.el.attractBegin) {
+            this.el.attractBegin.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.state === 'attract') this.begin();
+            });
+        }
+        if (this.el.story) {
+            this.el.story.addEventListener('pointerdown', (e) => {
+                if (this.state !== 'story') return;
+                if (e.target && e.target.closest && e.target.closest('.panel, .modal')) return;
+                this.advanceStory();
+            });
+        }
+        // Threshold: the button is the invitation, but a touch anywhere also begins
+        if (this.el.threshold) {
+            this.el.threshold.addEventListener('pointerdown', (e) => {
+                if (this.state !== 'threshold' || !this.thresholdReady) return;
+                if (e.target && e.target.closest && e.target.closest('.panel, .modal')) return;
+                this.startWork();
+            });
+        }
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
             if (e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
             if (e.key === 'Escape') {
-                if (this.state === 'work' || this.state === 'intro' || this.state === 'choose') this.endSession(false);
-                else if (this.state === 'return' || this.state === 'reflect' || this.state === 'thanks') this.toAttract();
+                if (this.state === 'work' || this.state === 'intro') this.endSession(false);
+                else if (this.state === 'story' || this.state === 'choose' || this.state === 'threshold' || this.state === 'return' || this.state === 'reflect' || this.state === 'thanks') this.toAttract();
                 return;
             }
             if (this.state === 'attract' && (e.key === ' ' || e.key === 'Enter')) this.begin();
-            if (this.state === 'choose' && e.key === 'Enter') this.startIntro();
+            if (this.state === 'story' && (e.key === ' ' || e.key === 'Enter')) this.advanceStory();
+            if (this.state === 'threshold' && this.thresholdReady && (e.key === ' ' || e.key === 'Enter')) this.startWork();
+            if (this.state === 'choose' && (e.key === ' ' || e.key === 'Enter')) this.beginFromChoice();
             if (this.state === 'intro' && (e.key === ' ' || e.key === 'Enter')) this.startWork();
         });
         if (this.el.chooseBellows) this.el.chooseBellows.addEventListener('click', () => this.toggleBellows());
-        if (this.el.chooseNext) this.el.chooseNext.addEventListener('click', () => { if (this.state === 'choose') this.startIntro(); });
+        if (this.el.chooseHow) this.el.chooseHow.addEventListener('click', () => { if (this.state === 'choose') this.startIntro(); });
+        if (this.el.chooseNext) this.el.chooseNext.addEventListener('click', () => { if (this.state === 'choose') this.beginFromChoice(); });
         if (this.el.introBegin) this.el.introBegin.addEventListener('click', () => { if (this.state === 'intro') this.startWork(); });
         if (this.el.end) this.el.end.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (this.state === 'work') this.endSession(false); });
 
@@ -1638,9 +1751,15 @@ class Installation {
         if (this.el.camTestBtn) this.el.camTestBtn.addEventListener('click', () => this.toggleCamTest());
         if (this.el.camRetry) this.el.camRetry.addEventListener('click', () => this.retryCamera());
 
+        if (this.el.reflectMic) this.el.reflectMic.addEventListener('click', () => this.toggleSpeechRecognition());
         if (this.el.reflectSave) this.el.reflectSave.addEventListener('click', () => this.saveReflection());
         if (this.el.reflectSkip) this.el.reflectSkip.addEventListener('click', () => this.finishReflection(false));
-        if (this.el.reflectInput) this.el.reflectInput.addEventListener('input', () => { this.reflectDeadline = performance.now() + 60000; });
+        if (this.el.reflectInput) {
+            this.el.reflectInput.addEventListener('input', () => {
+                this.reflectDeadline = performance.now() + 60000;
+                clearTimeout(this._speechAutoSaveTimer);
+            });
+        }
     }
 
     show(el, on) {
@@ -1660,19 +1779,179 @@ class Installation {
 
     /* ---------------- states ---------------- */
 
+    // Triggered when a visitor touches "Touch to begin" or presses Space/Enter
     begin() {
         const A = window.AlchemicalAudio;
-        if (A) { A.resume(); A.playChime('gold'); }
+        if (A) { A.resume(); A.wake(); }
+        this.attractDwell = 0;
+        if (this.el.attractDwell) this.el.attractDwell.style.transform = 'scaleX(0)';
         this.show(this.el.attract, false);
         this.engine.cameraTargetZ = 4.3;
         this.sessionTuning = this.settings.tuning;
         this.sessionBellows = this.settings.bellows;
         this.syncChoiceUI();
-        if (this.settings.visitorChoice) {
+        if (this.settings.visitorChoice && !this.settings.fanMode) {
             this.state = 'choose';
             this.show(this.el.choose, true);
         } else {
-            this.startIntro();
+            this.beginHandsFree();
+        }
+    }
+
+    // Triggered automatically when a visitor sits still before the camera in Hands-Free / 3D Fan mode
+    beginHandsFree() {
+        const A = window.AlchemicalAudio;
+        if (A) { A.resume(); A.wake(); }
+        this.attractDwell = 0;
+        if (this.el.attractDwell) this.el.attractDwell.style.transform = 'scaleX(0)';
+        this.show(this.el.attract, false);
+        this.show(this.el.choose, false);
+        this.engine.cameraTargetZ = 4.3;
+
+        // If visitorChoice is enabled in hands-free mode, cycle through the six planetary tones
+        // across sittings so the room and sound evolve over an exhibition day.
+        if (this.settings.visitorChoice) {
+            const toneObj = TONES[this.autoToneIndex % TONES.length];
+            this.autoToneIndex = (this.autoToneIndex + 1) % TONES.length;
+            this.sessionTuning = toneObj.key;
+        } else {
+            this.sessionTuning = this.settings.tuning;
+        }
+        this.sessionBellows = this.settings.bellows;
+        const tone = toneFor(this.sessionTuning);
+        if (A) { A.setTuning(this.sessionTuning); A.playChime('gold'); }
+        this.engine.setTone(this.sessionTuning);
+        this.syncChoiceUI();
+
+        this.state = 'threshold';
+        this.thresholdReady = true;
+        if (this.el.thresholdLine) {
+            this.el.thresholdLine.textContent = `${tone.planet} · ${tone.metal} (${tone.hz} Hz). Be still, and the quicksilver will show you your face.`;
+        }
+        if (this.el.thresholdBegin) {
+            this.el.thresholdBegin.style.display = this.settings.handsFree ? 'none' : '';
+        }
+        this.setOrbVisible(true, 2.0);
+        this.show(this.el.threshold, true);
+        (this._thresholdTimers || []).forEach(clearTimeout);
+        this._thresholdTimers = [
+            setTimeout(() => {
+                if (this.state !== 'threshold') return;
+                this.startWork();
+            }, 3800)
+        ];
+    }
+
+    startStory() {
+        this.state = 'story';
+        this.storyIndex = -1;
+        this.show(this.el.story, true);
+        this.advanceStory();
+    }
+
+    // One line per touch. Nothing moves on its own; the cue appears once the line has landed.
+    advanceStory() {
+        if (this.state !== 'story') return;
+        clearTimeout(this._cueTimer);
+        this.storyIndex += 1;
+        if (this.storyIndex >= STORY.length) {
+            this.finishStory();
+            return;
+        }
+        const el = this.el.storyLine;
+        const cue = this.el.storyCue;
+        if (cue) cue.classList.remove('is-visible');
+        if (el) {
+            el.classList.remove('is-visible');
+            el.textContent = STORY[this.storyIndex];
+            void el.offsetWidth;
+            el.classList.add('is-visible');
+        }
+        this._cueTimer = setTimeout(() => {
+            if (this.state === 'story' && cue) cue.classList.add('is-visible');
+        }, 1800);
+    }
+
+    // The handover: last line fades, a breath of black, the sphere comes up slowly,
+    // then the invitation. Nothing starts until the visitor touches.
+    finishStory() {
+        clearTimeout(this._cueTimer);
+        this.state = 'threshold';
+        this.thresholdReady = false;
+        const el = this.el.storyLine;
+        if (el) el.classList.remove('is-visible');
+        if (this.el.storyCue) this.el.storyCue.classList.remove('is-visible');
+        const hideStory = () => {
+            if (el) el.textContent = '';
+            this.show(this.el.story, false);
+        };
+        if (this.settings.visitorChoice) {
+            this._thresholdTimers = [
+                setTimeout(() => {
+                    if (this.state !== 'threshold') return;
+                    hideStory();
+                }, 1500),
+                setTimeout(() => {
+                    if (this.state !== 'threshold') return;
+                    const A = window.AlchemicalAudio;
+                    if (A) A.wake();
+                    this.state = 'choose';
+                    this.syncChoiceUI();
+                    this.show(this.el.choose, true);
+                }, 2200)
+            ];
+        } else {
+            this._thresholdTimers = [
+                setTimeout(() => {
+                    if (this.state !== 'threshold') return;
+                    hideStory();
+                }, 1500),
+                setTimeout(() => {
+                    if (this.state !== 'threshold') return;
+                    const A = window.AlchemicalAudio;
+                    if (A) A.wake();
+                    this.setOrbVisible(true, 5.0);
+                }, 2400),
+                setTimeout(() => {
+                    if (this.state !== 'threshold') return;
+                    this.show(this.el.threshold, true);
+                    this.thresholdReady = true;
+                }, 5600)
+            ];
+        }
+    }
+
+    clearStory() {
+        clearTimeout(this._cueTimer);
+        (this._thresholdTimers || []).forEach(clearTimeout);
+        this._thresholdTimers = [];
+        this.thresholdReady = false;
+        const el = this.el.storyLine;
+        if (el) {
+            el.classList.remove('is-visible');
+            el.textContent = '';
+        }
+        if (this.el.storyCue) this.el.storyCue.classList.remove('is-visible');
+        this.show(this.el.story, false);
+        this.show(this.el.threshold, false);
+        this.storyIndex = -1;
+    }
+
+    setOrbVisible(on, seconds = 2.8) {
+        const wasHidden = document.body.classList.contains('pre-orb');
+        document.body.classList.toggle('pre-orb', !on);
+        const box = document.getElementById('canvas-container');
+        if (!box) return;
+        if (on) {
+            if (wasHidden || box.style.opacity === '0') {
+                box.style.transition = `opacity ${seconds}s cubic-bezier(0.4, 0, 0.2, 1)`;
+                box.style.opacity = '0';
+                void box.offsetWidth;
+                box.style.opacity = '1';
+            }
+        } else {
+            box.style.transition = 'none';
+            box.style.opacity = '0';
         }
     }
 
@@ -1701,8 +1980,14 @@ class Installation {
         clearInterval(this._introCountdown);
         if (this.camTestOpen) this.toggleCamTest(false);
         this.state = 'work';
+        (this._thresholdTimers || []).forEach(clearTimeout);
+        this._thresholdTimers = [];
+        this.thresholdReady = false;
         this.show(this.el.choose, false);
         this.show(this.el.intro, false);
+        this.show(this.el.story, false);
+        this.show(this.el.threshold, false);
+        if (document.body.classList.contains('pre-orb')) this.setOrbVisible(true);
         this.show(this.el.hud, true);
         this.hintSince = 0;
         if (this.el.hint) this.el.hint.classList.remove('is-visible');
@@ -1719,7 +2004,7 @@ class Installation {
         this.againUntil = 0;
         this.clearVoice();
         const A = window.AlchemicalAudio;
-        if (A) A.setSessionActive(true);
+        if (A) { A.wake(); A.setSessionActive(true); }
         this.currentStageKey = null;
     }
 
@@ -1773,7 +2058,7 @@ class Installation {
             if (line.text === 'Move.') {
                 this.engine.shatterTarget = 1;
                 setTimeout(() => {
-                    if (this.state === 'work' && this.sessionElapsed < 10) this.engine.shatterTarget = 1;
+                    if (this.state === 'work' && this.sessionElapsed < 4) this.engine.shatterTarget = 1;
                 }, 1200);
             }
             if (line.text === 'Now stop.') {
@@ -1812,14 +2097,110 @@ class Installation {
         this.show(this.el.ret, false);
         this.state = 'reflect';
         this.show(this.el.reflect, true);
-        this.reflectDeadline = performance.now() + 45000;
+        this.reflectDeadline = performance.now() + (this.settings.handsFree ? 26000 : 45000);
         if (this.el.reflectInput) {
             this.el.reflectInput.value = '';
-            setTimeout(() => this.el.reflectInput.focus({ preventScroll: true }), 600);
+            if (!this.settings.fanMode) {
+                setTimeout(() => this.el.reflectInput.focus({ preventScroll: true }), 600);
+            }
+        }
+        // Start spoken reflection automatically if voiceMic is enabled and browser supports SpeechRecognition
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (this.el.reflectMic) {
+            this.el.reflectMic.parentElement.hidden = !SR;
+        }
+        if (SR && this.settings.voiceMic) {
+            this.startSpeechRecognition();
+        } else {
+            this.updateSpeechUI(false, '');
+        }
+    }
+
+    /* ---------------- spoken reflection (Web Speech API) ---------------- */
+
+    toggleSpeechRecognition() {
+        if (this.speechListening) this.stopSpeechRecognition();
+        else this.startSpeechRecognition();
+    }
+
+    startSpeechRecognition() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR || this.state !== 'reflect') return;
+        this.stopSpeechRecognition();
+        try {
+            const rec = new SR();
+            rec.lang = 'en-GB';
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.maxAlternatives = 1;
+
+            rec.onstart = () => {
+                this.speechListening = true;
+                this.updateSpeechUI(true, 'Listening… speak a sentence');
+            };
+            rec.onresult = (event) => {
+                let transcript = '';
+                let isFinal = false;
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                    if (event.results[i].isFinal) isFinal = true;
+                }
+                const cleaned = transcript.trim();
+                if (cleaned && this.el.reflectInput) {
+                    const formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+                    this.el.reflectInput.value = formatted.endsWith('.') || formatted.endsWith('?') || formatted.endsWith('!')
+                        ? formatted
+                        : (isFinal ? formatted + '.' : formatted);
+                    this.reflectDeadline = performance.now() + 30000;
+                }
+                if (isFinal && cleaned) {
+                    this.updateSpeechUI(false, 'Captured — inscribing on the outer ring…');
+                    clearTimeout(this._speechAutoSaveTimer);
+                    this._speechAutoSaveTimer = setTimeout(() => {
+                        if (this.state === 'reflect') this.saveReflection();
+                    }, 2400);
+                }
+            };
+            rec.onerror = () => {
+                this.speechListening = false;
+                this.updateSpeechUI(false, '');
+            };
+            rec.onend = () => {
+                this.speechListening = false;
+                if (this.el.reflectMic) this.el.reflectMic.setAttribute('aria-pressed', 'false');
+            };
+            this.speechRec = rec;
+            rec.start();
+        } catch (e) {
+            this.speechListening = false;
+            this.updateSpeechUI(false, '');
+        }
+    }
+
+    stopSpeechRecognition() {
+        clearTimeout(this._speechAutoSaveTimer);
+        if (this.speechRec) {
+            try { this.speechRec.onresult = null; this.speechRec.onend = null; this.speechRec.abort(); } catch (e) {}
+            this.speechRec = null;
+        }
+        this.speechListening = false;
+        this.updateSpeechUI(false, '');
+    }
+
+    updateSpeechUI(listening, statusText) {
+        if (this.el.reflectMic) {
+            this.el.reflectMic.setAttribute('aria-pressed', listening ? 'true' : 'false');
+        }
+        if (this.el.reflectMicLabel) {
+            this.el.reflectMicLabel.textContent = listening ? 'Listening…' : 'Speak your sentence';
+        }
+        if (this.el.reflectVoiceStatus) {
+            this.el.reflectVoiceStatus.textContent = statusText || '';
         }
     }
 
     saveReflection() {
+        this.stopSpeechRecognition();
         const text = (this.el.reflectInput ? this.el.reflectInput.value : '').trim().replace(/\s+/g, ' ');
         if (text) {
             this.reflections.unshift({ text: text.slice(0, 240), at: new Date().toISOString() });
@@ -1832,6 +2213,7 @@ class Installation {
     }
 
     finishReflection(saved) {
+        this.stopSpeechRecognition();
         this.show(this.el.reflect, false);
         if (this.el.reflectInput) this.el.reflectInput.blur();
         if (saved) {
@@ -1847,23 +2229,35 @@ class Installation {
     toAttract() {
         clearTimeout(this._introTimer);
         clearInterval(this._introCountdown);
+        this.stopSpeechRecognition();
+        this.clearStory();
         this.state = 'attract';
         this.engine.inSession = false;
         this.engine.cameraTargetZ = 5.0;
         this.engine.group.rotation.set(0, 0, 0);
         this.engine.camera.fov = 42;
         this.engine.camera.updateProjectionMatrix();
+        // Keep the quicksilver sphere visible and breathing in the gallery
+        this.setOrbVisible(true, 2.0);
+        // Require a fresh movement (a visitor shifting or arriving) before auto-starting the next sitting
+        this.visitorArrived = false;
+        this.attractDwell = 0;
+        if (this.el.attractDwell) this.el.attractDwell.style.transform = 'scaleX(0)';
+        if (this.el.attractDwellLabel) {
+            this.el.attractDwellLabel.textContent = 'Or sit still before the camera to begin';
+        }
         this.show(this.el.hud, false);
         this.show(this.el.choose, false);
         this.show(this.el.intro, false);
         this.show(this.el.ret, false);
         this.show(this.el.reflect, false);
+        this.show(this.el.thanks, false);
         this.show(this.el.attract, true);
         if (this.el.hint) this.el.hint.classList.remove('is-visible');
         this.clearVoice();
         if (this.camTestOpen) this.toggleCamTest(false);
         const A = window.AlchemicalAudio;
-        if (A) A.setSessionActive(false);
+        if (A) { A.setSessionActive(false); }
         // Back to the curator's defaults for the next person
         this.applySettings();
     }
@@ -1890,12 +2284,45 @@ class Installation {
     loop() {
         requestAnimationFrame(() => this.loop());
         const now = performance.now();
+        const dt = Math.min(0.1, Math.max(0.001, (now - (this.lastLoopTime || now)) / 1000));
+        this.lastLoopTime = now;
         const A = window.AlchemicalAudio;
 
         if (A && A.isActive) A.setOpus(this.engine.opus);
 
         if (this.camTestOpen && this.el.camLevel) {
             this.el.camLevel.style.transform = `scaleX(${clamp01(this.sensor.motion * 1.6).toFixed(3)})`;
+        }
+
+        // Hands-free sit-to-begin on Attract
+        if (this.state === 'attract' && this.settings.handsFree) {
+            const curatorOpen = window.Curator && (window.Curator.open || window.Curator.plaqueOpen);
+            if (!curatorOpen) {
+                // Detect a visitor arriving or shifting in the space
+                if (this.sensor.motion > 0.10) {
+                    this.visitorArrived = true;
+                }
+                const cameraLive = this.sensor.activeSource === 'camera';
+                if (this.visitorArrived && (cameraLive || this.settings.fanMode)) {
+                    if (this.sensor.stillness > 0.68 && this.sensor.motion < 0.16) {
+                        this.attractDwell = clamp01(this.attractDwell + dt / 3.2);
+                        if (this.el.attractDwellLabel && this.attractDwell > 0.15) {
+                            this.el.attractDwellLabel.textContent = 'Hold still… the quicksilver is listening';
+                        }
+                        if (this.attractDwell >= 1.0) {
+                            this.beginHandsFree();
+                        }
+                    } else {
+                        this.attractDwell = Math.max(0, this.attractDwell - dt * 0.65);
+                        if (this.el.attractDwellLabel && this.attractDwell < 0.1) {
+                            this.el.attractDwellLabel.textContent = 'Or sit still before the camera to begin';
+                        }
+                    }
+                    if (this.el.attractDwell) {
+                        this.el.attractDwell.style.transform = `scaleX(${this.attractDwell.toFixed(3)})`;
+                    }
+                }
+            }
         }
 
         if (this.state === 'work') {
@@ -1929,8 +2356,8 @@ class Installation {
             if (now > this.reflectDeadline) this.saveReflection();
         }
 
-        // Idle guard: if a visitor walks away from the choice screen, return to attract
-        if (this.state === 'choose' && now - this.lastActivity > this.settings.idleSeconds * 1000) this.toAttract();
+        // Idle guard: if a visitor walks away before the sitting starts, return to attract
+        if ((this.state === 'choose' || this.state === 'story' || this.state === 'threshold') && now - this.lastActivity > this.settings.idleSeconds * 1000) this.toAttract();
     }
 }
 
@@ -1957,6 +2384,8 @@ class Curator {
             volumeVal: document.getElementById('c-volume-val'),
             mute: document.getElementById('c-mute'),
             camera: document.getElementById('c-camera'),
+            handsfree: document.getElementById('c-handsfree'),
+            voicemic: document.getElementById('c-voicemic'),
             choice: document.getElementById('c-choice'),
             fan: document.getElementById('c-fan'),
             pixel: document.getElementById('c-pixel'),
@@ -1995,7 +2424,6 @@ class Curator {
 
         const s = this.inst.settings;
         const f = this.f;
-        const A = window.AlchemicalAudio;
 
         if (f.close) f.close.addEventListener('click', () => this.close());
         if (f.plaqueClose) f.plaqueClose.addEventListener('click', () => this.togglePlaque());
@@ -2018,8 +2446,14 @@ class Curator {
             this.inst.applySettings();
             this.inst.startSensor();
         });
+        if (f.handsfree) f.handsfree.addEventListener('change', (e) => { s.handsFree = e.target.checked; this.inst.applySettings(); });
+        if (f.voicemic) f.voicemic.addEventListener('change', (e) => { s.voiceMic = e.target.checked; this.inst.applySettings(); });
         if (f.choice) f.choice.addEventListener('change', (e) => { s.visitorChoice = e.target.checked; this.inst.applySettings(); });
-        if (f.fan) f.fan.addEventListener('change', (e) => { s.fanMode = e.target.checked; this.inst.applySettings(); });
+        if (f.fan) f.fan.addEventListener('change', (e) => {
+            s.fanMode = e.target.checked;
+            if (s.fanMode) { s.handsFree = true; if (f.handsfree) f.handsfree.checked = true; }
+            this.inst.applySettings();
+        });
         if (f.pixel) f.pixel.addEventListener('change', (e) => { s.pixelRatio = parseFloat(e.target.value); this.inst.applySettings(); window.dispatchEvent(new Event('resize')); });
         if (f.lock) f.lock.addEventListener('click', () => this.applyLock(!this.locked));
         if (f.fullscreen) f.fullscreen.addEventListener('click', () => this.toggleFullscreen());
@@ -2044,6 +2478,8 @@ class Curator {
         if (f.volume) f.volume.value = String(s.volume);
         if (f.volumeVal) f.volumeVal.textContent = `${s.volume}%`;
         if (f.camera) f.camera.checked = !!s.camera;
+        if (f.handsfree) f.handsfree.checked = !!s.handsFree;
+        if (f.voicemic) f.voicemic.checked = !!s.voiceMic;
         if (f.choice) f.choice.checked = !!s.visitorChoice;
         if (f.fan) f.fan.checked = !!s.fanMode;
         if (f.pixel) f.pixel.value = String(s.pixelRatio);

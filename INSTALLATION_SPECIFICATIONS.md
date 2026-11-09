@@ -35,8 +35,14 @@ The camera is the sensor. It is what the piece measures stillness with, and what
 ### Option B: Display
 - 75"–98" commercial 4K display rated for continuous operation, anti-glare, centre at 1.45 m from the floor.
 
-### Optional touch surface
-- If the room design wants a touch point for beginning a session and leaving a sentence, a 12.9"–15.6" tablet or touch monitor on a plain plinth (35 × 35 × 105 cm, charcoal or blackened wood) within reach of the bench. The projection and the tablet can run the same page; the tablet is simply the touch surface. Without a tablet, a visitor begins by touching or clicking anywhere on the machine's own input device, or a docent starts sessions.
+### Option C: 3D Holographic Fan (Sculptural Plinth / Shared-Space Edition)
+- Ideal for group shows, libraries, or spaces without a dedicated dark room or spare wall.
+- 65 cm–100 cm high-density LED holographic rotor display (HDMI real-time input, 1:1 circular aspect) mounted at 1.45 m height on a matte black stand or inside a dark acrylic vitrine.
+- Toggle **3D Fan mode (circular rotor)** in the Curator panel (`Shift + C`) or launch with `http://localhost:8080/?fan=1`. Background renders pure `#000000` (transparent on LED rotor blades) with a circular rotor boundary mask and boosted metallic specular highlights.
+
+### Hands-Free Operation vs. Optional Touch Surface
+- **Hands-Free Mode (default)**: No touchscreen, mouse, or keyboard is required in the gallery. When a visitor sits on the bench (or stands before the 3D fan) and holds still for three seconds, the webcam stillness sensor automatically initiates the 90-second sitting. At completion, visitors can speak their reflection sentence aloud via a small directional USB microphone (transcribed locally onto the outer ring) or simply walk away.
+- **Optional Touch Surface**: If the room design prefers a tactile trigger for choosing a planetary tone and typing a sentence, a 12.9"–15.6" tablet or touch monitor on a plain plinth (35 × 35 × 105 cm, charcoal or blackened wood) can be placed within reach of the bench.
 
 ---
 

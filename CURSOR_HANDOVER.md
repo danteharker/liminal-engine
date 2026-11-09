@@ -16,10 +16,12 @@ A sphere of liquid metal inside three engraved rings. A webcam measures how much
 
 | opus | stage | material | sound |
 | :--- | :--- | :--- | :--- |
-| 0.00–0.25 | Caput Corvi | near-black, rough, agitated | filter closed, bellows 84 bpm |
-| 0.25–0.50 | Albedo | quicksilver, settling | filter opening, bellows slowing |
-| 0.50–0.75 | Citrinitas | pale gold | pad quieter, bellows fading |
-| 0.75–1.00 | Rubedo | gold mirror reflecting the webcam feed | open, near silence, bellows off |
+| 0.00–0.25 | Black (the raven, *caput corvi*) | near-black, rough, agitated | filter closed, bellows 84 bpm |
+| 0.25–0.50 | Silver (the whitening, *albedo*) | quicksilver, settling | filter opening, bellows slowing |
+| 0.50–0.75 | Gold (the yellowing, *citrinitas*) | pale gold | pad quieter, bellows fading |
+| 0.75–1.00 | Mirror (the reddening, *rubedo*) | gold mirror reflecting the webcam feed | open, near silence, bellows off |
+
+On screen the visitor only ever sees the English word. The Latin stays in this file and in `NARRATIVE.md` for reference; nothing Latin is shown in the piece.
 
 Moving makes the opus fall (14 s from 1 to 0). Being still makes it rise (≈55% of the session length from 0 to 1). Outside a session the opus is capped at 0.45 so the resting piece breathes with the room but only goes gold for someone who sits down.
 
@@ -58,7 +60,7 @@ The film and stills were rendered headless from the running piece by `tools/capt
   - **Core**: `IcosahedronGeometry(0.72, 14)`. Duplicate vertices are merged once at init; every frame `displaceCore()` displaces the unique vertices radially (agitation = stage amplitude + motion) and computes smooth normals on the merged set, then writes both back. Do not call `computeVertexNormals()` on this geometry; it is non-indexed and would go faceted.
   - **Stages**: `applyStageVisuals(p)` interpolates colour, roughness, metalness, envMapIntensity for core and rings, and the furnace light colour. `stageLerp` / `stageLerpColor` are piecewise over the four stage values.
   - **Colour**: `outputEncoding = sRGBEncoding`. All hex colours pass through `linear()` (cached `convertSRGBToLinear`) so they come out as authored. Fog and the wall are set the same way. This is why the background is black and the gold is gold; without it everything is lifted and olive.
-  - **Rings**: three tori. Canvas textures (2048×128) drawn in EB Garamond with hand letter-spacing, used as `bumpMap` and `emissiveMap`. Ring 0 carries the three most recent visitor inscriptions (italic), or "Solve et Coagula · Be still" when there are none. Ring 1: the stage names. Ring 2: V.I.T.R.I.O.L. Redrawn after `document.fonts.ready`.
+  - **Rings**: three tori. Canvas textures (2048×128) drawn in EB Garamond with hand letter-spacing, used as `bumpMap` and `emissiveMap`. Ring 0 carries the three most recent visitor inscriptions (italic), or "Shatter · Gather / Be still" when there are none. Ring 1: Black, Silver, Gold, Mirror. Ring 2: "Go inward / Set things right / Find what is hidden" (the V.I.T.R.I.O.L. motto in English). Redrawn after `document.fonts.ready`.
   - **Chimes**: each ring chimes once per quarter turn on 0.5×, 1×, 1.5× of the active tuning's frequency, less often as the opus rises.
 - **`Installation`** — the visitor state machine: `attract → choose → intro → work → return → reflect → thanks → attract`. Settings live in `localStorage.liminal_settings`; inscriptions in `localStorage.liminal_reflections` (`[{text, at}]`). `applySettings()` pushes to audio and engine. There is no inactivity timer during `work`; being still is the point. `choose` returns to attract after `idleSeconds` if abandoned; `intro` starts the work itself after 15 s; `reflect` auto-submits after 45 s (60 s once typing starts).
   - **Guidance is explicit on purpose.** Attract has a title, one sentence and a *Touch to begin* button. `choose` is "Step 1 of 2": six tone cards built from `TONES` plus a frame-drum toggle. `intro` is "Step 2 of 2": three numbered lines and *I'm ready*. During `work`, `#hud-hint` (*Be still. The metal is listening.*) fades in after 2.5 s of motion above 0.3, once the sitting is 6 s old. An earlier build had a single line of italic copy and no button; visitors did not know what to do.
@@ -68,7 +70,7 @@ The film and stills were rendered headless from the running piece by `tools/capt
 
 ### audio.js
 
-`AlchemicalAudioEngine` on `window.AlchemicalAudio`. Everything is synthesised. `resume()` on first touch (browsers need a gesture). `setTuning(key)` for the six tones (`396 · Saturn`, `432 · Sol`, `528 · Venus`, `639 · Jupiter`, `741 · Mercury`, `852 · Luna`). `setOpus(p)` is called every frame and drives filter cutoff (160 → 1400 Hz), pad level, binaural spread (8 → 4 Hz) and the bellows tempo (84 → 48 bpm, fading out over the last quarter). `playCompletion()` is three rising bells and a swell. No DOM access anywhere in this file.
+`AlchemicalAudioEngine` on `window.AlchemicalAudio`. Everything is synthesised. `resume()` on first touch (browsers need a gesture). `setTuning(key)` for the six tones (`396 · Saturn`, `432 · Sun`, `528 · Venus`, `639 · Jupiter`, `741 · Mercury`, `852 · Moon`). `sleep()` fades the whole mix to silence for the Start screen; `wake()` brings it back when a visitor begins. `setOpus(p)` is called every frame and drives filter cutoff (160 → 1400 Hz), pad level, binaural spread (8 → 4 Hz) and the bellows tempo (84 → 48 bpm, fading out over the last quarter). `playCompletion()` is three rising bells and a swell. No DOM access anywhere in this file.
 
 ---
 

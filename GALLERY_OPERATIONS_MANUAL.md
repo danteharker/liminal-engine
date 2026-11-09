@@ -21,7 +21,7 @@ Daily procedure for invigilators and technical staff.
 - **Resting**: the sphere and rings, live, responding to movement in the room, in the colour of the curator's default tone. The title, one sentence, and a **Touch to begin** button. Above them, sentences left by previous visitors fade in and out.
 - **Step 1, Choose your tone**: six tones, each named for a planet and its metal, each with a colour. Tapping one changes the sound and the colour of the room straight away. A **Frame drum: on/off** toggle. **Next**.
 - **Step 2, How it works**: three numbered lines (what it wants, shatter/gather, stay for ninety seconds), a warning about rhythmic sound and light, and an **I'm ready** button. It begins on its own after 15 seconds. A **Test the camera** toggle opens a small mirrored preview with a still/moving bar so the visitor can see what the metal sees. If no camera is found it says so, explains that touch and mouse will be read instead, and offers *try the camera again*. Opening the test pauses the 15-second auto-start.
-- **The work**: ninety seconds by default. The stage name (Caput Corvi, Albedo, Citrinitas, Rubedo) appears quietly in the bottom-left as it changes. The drum starts here, not before. A hairline along the bottom edge shows time. If the visitor keeps moving, *Be still. The metal is listening.* fades in until they stop. **Leave** in the top-right (or Esc) stops early.
+- **The work**: ninety seconds by default. The stage name (Black, Silver, Gold, Mirror) appears quietly in the bottom-left as it changes. The drum starts here, not before. A hairline along the bottom edge shows time. If the visitor keeps moving, *Be still. The metal is listening.* fades in until they stop. **Leave** in the top-right (or Esc) stops early.
 - **Sound on/off**: a small button in the bottom-right corner, present on every screen. The visitor's own mute. It is the same mute as the curator panel's.
 - **Return**: three bells, *Welcome back. The work is complete.*
 - **The question**: *What did you notice in the space between thoughts?* One field. *Inscribe* or *Leave nothing*. After 45 seconds of no typing it moves on by itself.
@@ -37,9 +37,9 @@ Nobody has to do anything for the piece to run. It rests when nobody is there an
 | :--- | :--- |
 | Session | Length of the work: 1, 1.5, 2, 3 or 5 minutes (default 2) |
 | Idle return | How long an abandoned choice screen waits before returning to rest |
-| Tuning | The default tone, heard and seen while the piece rests. Six choices, named by the planetary metals. Default 432 Hz · Sol |
+| Tuning | The default tone, heard and seen while the piece rests. Six choices, named by the planetary metals. Default 432 Hz · Sun |
 | Visitor chooses the tone | On by default. Turn off to skip Step 1 and run every sitting on the default tone |
-| Bellows | Frame drum on or off by default, and its pattern (Pulse, Heartbeat, Roll). Visitors can switch the drum on or off for their own sitting |
+| Bellows | Frame drum on or off by default, and its pattern. Default is **Shamanic**: a steady, unvarying four beats a second (the tempo of journey drumming across traditions), easing very slightly as the work completes and falling silent at the mirror. Heartbeat, Pulse and Roll are slower alternatives. Visitors can switch the drum on or off for their own sitting |
 | Volume | Room level. Mute is separate and immediate |
 | Camera sensor | Turn the camera off to run on touch and device motion only |
 | Render scale | 1.0 on modest machines, 2.0 for 4K on a capable GPU |

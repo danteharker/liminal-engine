@@ -3,7 +3,7 @@
 Everything needed to enter the piece, in the order you will be asked for it.
 Copy blocks straight from here into the forms.
 
-Live link: https://danteharker.github.io/liminal-engine/
+Live link: https://ammati.com/liminal-engine/
 Code: https://github.com/danteharker/liminal-engine
 
 ---
@@ -36,7 +36,7 @@ Caption line for every image:
 
 1. youtube.com → Create → Upload video → `submission/liminal-engine-90s.mp4`.
 2. Title: `Liminal Engine (2026) — one sitting, 90 seconds`
-3. Description: paste the **Short description** from section 3, then a blank line, then `Live: https://danteharker.github.io/liminal-engine/`.
+3. Description: paste the **Short description** from section 3, then a blank line, then `Live: https://ammati.com/liminal-engine/`.
 4. Audience: not made for kids. Under "Show more": turn **off** comments, turn **off** "Allow embedding" only if you want; leave it on for gallery sites.
 5. Visibility: **Unlisted**. Not Private (jurors could not open it) and not Public (keeps it out of search until the shows announce).
 6. Thumbnail: upload `07-rubedo.jpg`.
@@ -64,7 +64,7 @@ Use the statement in `CURATORIAL_STATEMENT.md`, section "Artist's statement". It
 
 ### Technical requirements and dimensions (short form, for forms with a small box)
 
-Dark room, 3 x 3 m minimum, with a bench 2 to 3 m from the image. One projector (1080p or better, 3000 lm+) or a 55 inch+ display; stereo speakers or a soundbar at low level. A USB webcam facing the bench. One computer (Windows, Mac or Linux) running Chrome in kiosk mode; no internet needed once installed. Power only. The camera is not recorded and no image leaves the machine. Full rider: `INSTALLATION_SPECIFICATIONS.md`.
+Scalable to two formats: (1) Dark room (3 × 3 m min) with a bench facing a 1080p/4K projection or 65"+ display, stereo speakers + sub, and a USB webcam; or (2) Sculptural Plinth Edition using a 65–100 cm 3D LED holographic fan (`?fan=1`) requiring 1 × 1 m floor space and no wall. Hands-free operation: sitting still before the camera for 3 seconds starts the 90-second work automatically; visitors can speak or type a reflection at the end. Runs offline on any PC/Mac in Chrome kiosk mode. No camera images are stored or transmitted. Full rider: `INSTALLATION_SPECIFICATIONS.md`.
 
 ### Short biography (fill in; keep to 80 to 100 words, third person)
 
@@ -99,11 +99,14 @@ Deadline **11 October 2026** (late entries 12 to 18 October, £35). Regular fee 
 
 ---
 
-## 6. After these two
+## 6. Active & Upcoming Open Calls (Nov 2026 – Spring 2027)
 
-- **Lumen Prize 2027**: opens late January 2027. Experiential Innovation category. Same assets.
-- **Canary Wharf Winter Lights 2028**: open call around March to May 2027, emailed proposal plus budget. The tech rider is most of the proposal.
-- **arebyte BYOB 2027**: call around February 2027, video up to 3.5 minutes; the 90s film qualifies.
-- **Prix Ars Electronica 2027**: call January to March 2027, free. Check whether Digital Musics and Sound Art runs; the generative audio qualifies.
+- **Amsterdam Light Festival (Edition 16, 2027–28)**: Deadline **7 December 2026**. Pitch the weatherproof vitrine / 3D Holographic Fan or rear-projection sphere edition along the canal where passers-by must stop walking and stand still for the quicksilver to turn to gold.
+- **CURRENTS New Media Festival 2027 (Santa Fe, USA)**: Deadline **8 December 2026**. Submit under Interactive Installation (Projection or 3D Fan edition).
+- **Barbican Library Exhibition Open Call (London, UK)**: Deadline **31 December 2026**. Pitch the self-contained Plinth / 3D Fan + Headphones edition—a quiet station for stillness inside a public library.
+- **Prix Ars Electronica 2027 (Linz, Austria)**: Opens **January 2027 – March 2027**, free entry. Submit to *Interactive Art +* (and optionally *Digital Musics & Sound Art* for the live Web Audio synthesis). Highlight the hands-free camera stillness sensor and anti-surveillance architecture.
+- **The Lumen Prize 2027**: Opens **late January 2027 – May 2027**. *Experiential* or *XR/Interactive* category.
+- **arebyte Gallery BYOB / Open Screen 2027 (London, UK)**: Call around **February 2027**. Ideal London showcase to bring either a projector or a 3D holographic fan on a stand.
+- **Canary Wharf Winter Lights 2028**: Open call **March – May 2027**, emailed proposal plus budget. The tech rider is most of the proposal.
 
 Keep the video link and this file; every one of these asks for the same five things.

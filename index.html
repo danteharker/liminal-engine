@@ -8,7 +8,7 @@
     <title>Liminal Engine</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23c9a24a' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%23c9a24a'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="stylesheet" href="style.css?v=20260904d">
+    <link rel="stylesheet" href="style.css?v=20261109a">
     <script src="three.min.js"></script>
     <script>if (typeof THREE === 'undefined') { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>'); }</script>
 </head>
@@ -16,6 +16,7 @@
 
     <!-- Scene -->
     <div id="canvas-container" aria-label="Liminal Engine, live scene"></div>
+    <div id="fan-boundary" aria-hidden="true"></div>
 
     <!-- Persistent mark -->
     <header id="mark" aria-hidden="true">
@@ -36,29 +37,47 @@
         <span id="sound-label">Sound on</span>
     </button>
 
-    <!-- Attract: the resting state. Title, one sentence, one clear button. -->
+    <!-- Attract: the sphere is live at rest, breathing with the room. -->
     <section id="attract" class="layer is-visible" aria-hidden="false">
-        <p id="attract-inscription" class="inscription"></p>
+        <p id="attract-inscription" class="inscription" aria-live="polite"></p>
         <div class="attract-block">
             <h1 class="attract-title">Liminal Engine</h1>
-            <p class="attract-sub">It wants one thing from you: stillness.<br>Be still, and the sphere turns to gold and shows you your face.</p>
+            <p class="attract-sub">A sphere of quicksilver that turns to gold when you are still.</p>
             <button id="attract-begin" type="button" class="big-btn">Touch to begin</button>
+            <div id="attract-dwell-wrap" class="dwell-wrap" aria-live="polite">
+                <p id="attract-dwell-label" class="dwell-label">Or sit still before the camera to begin</p>
+                <div class="dwell-track"><div id="attract-dwell" class="dwell-bar"></div></div>
+            </div>
         </div>
         <p id="sensor-note" class="note"></p>
     </section>
 
-    <!-- Choose: the visitor picks a tone; the room takes its colour -->
+    <!-- Story: told in the dark, one line per touch, to still the visitor before the metal appears. -->
+    <section id="story" class="layer" aria-hidden="true">
+        <p id="story-line" class="story-line"></p>
+        <p id="story-cue" class="story-cue">Touch to continue</p>
+    </section>
+
+    <!-- Threshold: the sphere has arrived. One line, one invitation. -->
+    <section id="threshold" class="layer" aria-hidden="true">
+        <div class="threshold-block">
+            <p id="threshold-line" class="threshold-line">This is the quicksilver. It is listening to your body.</p>
+            <button id="threshold-begin" type="button" class="big-btn">Touch to begin</button>
+        </div>
+    </section>
+
+    <!-- Choose: touching a tone sets the sound and colour of the room and begins the sitting. -->
     <section id="choose" class="layer" aria-hidden="true">
         <div class="choose-block">
             <p class="step-label">Step 1 of 2</p>
-            <h2 class="choose-title">Choose your tone</h2>
-            <p class="choose-sub">Pick the one that matches how you feel. It sets the sound and the colour of the room.</p>
+            <p class="threshold-line">Choose how it sounds.</p>
+            <p class="choose-sub">Each tone sets the sound and the colour of the room. Touch one to begin.</p>
             <div id="tone-grid" class="tone-grid" role="radiogroup" aria-label="Tone"></div>
             <div class="choose-row">
                 <button id="choose-bellows" type="button" class="toggle-btn" aria-pressed="true">
                     <span class="toggle-mark" aria-hidden="true"></span>Frame drum: on
                 </button>
-                <button id="choose-next" type="button" class="big-btn">Next</button>
+                <button id="choose-how" type="button" class="text-btn">how it works &amp; test camera</button>
             </div>
         </div>
     </section>
@@ -111,12 +130,18 @@
         <p class="return-sub">The work is complete.</p>
     </section>
 
-    <!-- Reflection: one question, one field -->
+    <!-- Reflection: one question, one field (plus spoken voice inscription) -->
     <section id="reflect" class="layer" aria-hidden="true">
         <div class="panel reflect-panel">
             <p class="question">What did you notice in the space between thoughts?</p>
-            <p class="question-sub">A sentence or two. It will be engraved on the outer ring for the next person.</p>
-            <textarea id="reflect-input" rows="3" maxlength="240" spellcheck="false" placeholder="Type here"></textarea>
+            <p id="reflect-sub" class="question-sub">Speak aloud or type a sentence. It will be engraved on the outer ring for the next person.</p>
+            <textarea id="reflect-input" rows="3" maxlength="240" spellcheck="false" placeholder="Type here, or speak aloud…"></textarea>
+            <div class="reflect-voice-row">
+                <button id="reflect-mic" type="button" class="toggle-btn" aria-pressed="false">
+                    <span class="toggle-mark" aria-hidden="true"></span><span id="reflect-mic-label">Speak your sentence</span>
+                </button>
+                <span id="reflect-voice-status" class="voice-status" aria-live="polite"></span>
+            </div>
             <div class="actions">
                 <button id="reflect-skip" type="button" class="text-btn">Leave nothing</button>
                 <button id="reflect-save" type="button" class="text-btn primary">Inscribe</button>
@@ -157,25 +182,27 @@
                 <label>Tuning
                     <select id="c-tuning">
                         <option value="396">396 Hz · Saturn · Lead</option>
-                        <option value="432">432 Hz · Sol · Gold</option>
+                        <option value="432">432 Hz · Sun · Gold</option>
                         <option value="528">528 Hz · Venus · Copper</option>
                         <option value="639">639 Hz · Jupiter · Tin</option>
                         <option value="741">741 Hz · Mercury · Quicksilver</option>
-                        <option value="852">852 Hz · Luna · Silver</option>
+                        <option value="852">852 Hz · Moon · Silver</option>
                     </select>
                 </label>
                 <label>Bellows pattern
                     <select id="c-pattern">
+                        <option value="shamanic" selected>Shamanic (steady, 4 beats a second)</option>
                         <option value="heartbeat">Heartbeat (slow)</option>
-                        <option value="shamanic">Shamanic (fast 4/sec)</option>
                         <option value="pulse">Pulse</option>
                         <option value="roll">Roll</option>
                     </select>
                 </label>
                 <label class="check"><input id="c-bellows" type="checkbox"> Bellows (frame drum)</label>
                 <label class="check"><input id="c-camera" type="checkbox"> Camera sensor</label>
+                <label class="check"><input id="c-handsfree" type="checkbox"> Hands-free (sit still to begin)</label>
+                <label class="check"><input id="c-voicemic" type="checkbox"> Voice inscription (microphone)</label>
                 <label class="check"><input id="c-choice" type="checkbox"> Visitor chooses the tone</label>
-                <label class="check"><input id="c-fan" type="checkbox"> Fan mode (pure black)</label>
+                <label class="check"><input id="c-fan" type="checkbox"> 3D Fan mode (circular rotor)</label>
                 <label>Volume <span id="c-volume-val">60%</span>
                     <input id="c-volume" type="range" min="0" max="100" step="1">
                 </label>
@@ -220,7 +247,7 @@
             <p class="plaque-meta">Dante Harker · 2026<br>Interactive installation. Camera, projection, generative sound. Dimensions variable.</p>
             <div class="plaque-body">
                 <p>A sphere of quicksilver hangs inside three engraved rings. A camera watches the room. Nothing is recorded; each frame is compared with the last and thrown away. The only thing the machine keeps is how much you are moving.</p>
-                <p>When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four stages the alchemists gave the Great Work: caput corvi, albedo, citrinitas, rubedo. The raven, the white, the yellow, the red-gold. At the end it is a mirror, and what it reflects is you, and the room you are sitting in.</p>
+                <p>When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four colours the alchemists gave their work: black, silver, gold, and at last a mirror. What it reflects is you, and the room you are sitting in.</p>
                 <p>Before you sit, you choose one of six tones, each tuned to one of the alchemists' planets. The tone sets the sound and the colour of the room. The sound is made live from that tone and a frame drum that slows as the work completes. There is no recording.</p>
                 <p>If you want to, you can leave a sentence. It is engraved on the outer ring for the next person.</p>
             </div>
@@ -230,7 +257,7 @@
 
     <div id="toast" role="status" aria-live="polite"></div>
 
-    <script src="audio.js?v=20260904d"></script>
-    <script src="engine.js?v=20260904d"></script>
+    <script src="audio.js?v=20261109a"></script>
+    <script src="engine.js?v=20261109a"></script>
 </body>
 </html>
