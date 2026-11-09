@@ -37,7 +37,7 @@ const TONES = [
 function toneFor(key) { return TONES.find(t => t.key === String(key)) || TONES[1]; }
 
 function durationWords(seconds) {
-    const map = { 60: 'one minute', 90: 'ninety seconds', 120: 'two minutes', 180: 'three minutes', 300: 'five minutes' };
+    const map = { 60: 'one minute', 90: 'ninety seconds', 120: 'two minutes', 180: 'three minutes', 210: 'three and a half minutes', 300: 'five minutes', 420: 'seven minutes', 600: 'ten minutes' };
     return map[seconds] || `${Math.round(seconds)} seconds`;
 }
 
@@ -50,23 +50,18 @@ const STORY = [
     'Every screen in your life is built to keep the quicksilver moving.',
     'This one is built to let it stop.',
     'Move, and the sphere shatters.',
-    'Be still, and it will show you your face.'
+    'There is a space between thoughts. This is a way into it.',
+    'Rest your eyes on the point of light, and see what is shown.'
 ];
 
-// The story has already been told in the dark. The sitting opens on the lesson itself.
+// Said once, near the beginning, then almost nothing. The piece has to be looked at,
+// not read. `portion` is a share of the session, so a longer sitting stays quiet.
 const VOICE = [
-    { at: 1.2,  text: 'Move.', command: true, hold: 2.0 },
-    { at: 4.0,  text: 'Now stop.', command: true, hold: 2.2 },
-    { at: 7.0,  text: 'That is the whole method. Shatter. Gather.', hold: 3.2 },
-    { at: 13.0, text: 'Everything you carried in here is in the sphere.', hold: 3.0 },
-    { at: 23.5, text: 'Let it burn. Do not move.', hold: 3.0, needStill: true },
-    { at: 30.0, text: 'Dissolve.', command: true, hold: 2.0, needStill: true },
-    { at: 34.0, text: 'You do not have to hold it together.', hold: 3.0 },
-    { at: 39.0, text: 'Follow the drum.', hold: 2.8 },
-    { at: 50.0, text: 'You are the only thing in this room that is still.', hold: 3.6, needStill: true },
-    { at: 56.0, text: 'Go inward.', hold: 2.6 },
-    { at: 70.0, text: 'It has gathered. So have you.', hold: 3.0, needStill: true },
-    { at: 75.0, text: 'This is what is left when you stop.', hold: 4.0 }
+    { at: 3,    text: 'Move.', command: true, hold: 2.6 },
+    { at: 12,   text: 'Now be still.', command: true, hold: 3.2 },
+    { at: 22,   text: 'Moving makes the mind busy. Stillness makes space.', hold: 6.5 },
+    { portion: 0.42, text: 'Rest on the point of light.', hold: 4.5, needStill: true },
+    { portion: 0.75, text: 'There is space here.', hold: 6, needStill: true }
 ];
 
 function stageFor(p) {
@@ -138,6 +133,16 @@ class StillnessSensor {
         this.lastPointerTime = 0;
         this.lastAccel = null;
 
+        // Hand tracking, the same reader PulseWave uses. It says where the hand is,
+        // not merely that some pixels changed, so a small movement reaches the metal at once.
+        // It shares this camera. If the model cannot load, frame differencing carries on alone.
+        this.handSeen = false;
+        this.handX = 0;
+        this.handY = 0;
+        this.handOpen = 0;
+        this.handMotion = 0;
+        this.handAt = 0;
+
         this.bindFallbackInputs();
     }
 
@@ -198,6 +203,7 @@ class StillnessSensor {
             this.lastError = null;
             this.lumaRing = [];
             this.lastVideoTime = -1;
+            this.attachHands();
             return true;
         } catch (err) {
             if (attempt !== this._camAttempt) return false;
@@ -225,7 +231,70 @@ class StillnessSensor {
         this.video = null;
         this.lumaRing = [];
         this.cameraMotion = 0;
+        this.handSeen = false;
+        this.handMotion = 0;
         this.source = 'pointer';
+    }
+
+    // One hand, on the camera we already have. A second getUserMedia would lock the webcam.
+    attachHands() {
+        if (this.hands || this._handsFailed) return;
+        if (typeof Hands === 'undefined') {
+            if (this._handsWait) return;
+            this._handsWait = setInterval(() => {
+                if (typeof Hands === 'undefined') return;
+                clearInterval(this._handsWait);
+                this._handsWait = null;
+                this.attachHands();
+            }, 400);
+            setTimeout(() => { if (this._handsWait) { clearInterval(this._handsWait); this._handsWait = null; } }, 12000);
+            return;
+        }
+        try {
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+            });
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 0,
+                minDetectionConfidence: 0.55,
+                minTrackingConfidence: 0.5
+            });
+            hands.onResults((results) => this.onHands(results));
+            this.hands = hands;
+        } catch (err) {
+            this._handsFailed = true;
+            console.info('Hand tracking unavailable, using motion only:', (err && err.message) || err);
+        }
+    }
+
+    onHands(results) {
+        const marks = results.multiHandLandmarks && results.multiHandLandmarks[0];
+        if (!marks) { this.handSeen = false; return; }
+        const wrist = marks[0], palm = marks[9];
+        const cx = (wrist.x + palm.x) / 2, cy = (wrist.y + palm.y) / 2;
+        // Mirror, so the visitor's right hand lands on the right of the sphere
+        const x = (0.5 - cx) * 2;
+        const y = (0.5 - cy) * 2;
+        const now = performance.now();
+        if (this._handPrev) {
+            const dt = Math.max(0.016, (now - this._handPrev.t) / 1000);
+            const speed = Math.hypot(x - this._handPrev.x, y - this._handPrev.y) / dt;
+            const m = clamp01((speed - 0.28) / 0.9);
+            this.handMotion = m > this.handMotion ? lerp(this.handMotion, m, 0.7) : lerp(this.handMotion, m, 0.18);
+        }
+        this._handPrev = { x, y, t: now };
+        let reach = 0;
+        [4, 8, 12, 16, 20].forEach(i => {
+            const tip = marks[i];
+            reach += Math.hypot(tip.x - wrist.x, tip.y - wrist.y, tip.z - wrist.z);
+        });
+        const open = clamp01((reach / 5 - 0.15) / 0.25);
+        this.handX = x;
+        this.handY = y;
+        this.handOpen = open;
+        this.handSeen = true;
+        this.handAt = now;
     }
 
     get cameraReady() {
@@ -307,8 +376,17 @@ class StillnessSensor {
 
     update(dt) {
         this.sampleCamera();
+        if (this.hands && this.cameraReady && !this._handBusy) {
+            this._handBusy = true;
+            this.hands.send({ image: this.video }).then(() => { this._handBusy = false; }).catch(() => { this._handBusy = false; });
+        }
+        if (this.handSeen && performance.now() - this.handAt > 450) {
+            this.handSeen = false;
+            this.handMotion = 0;
+        }
         this.pointerMotion = Math.max(0, this.pointerMotion - dt * 1.4);
-        this.motion = Math.max(this.cameraMotion, this.pointerMotion);
+        this.handMotion = this.handSeen ? this.handMotion : Math.max(0, this.handMotion - dt * 1.6);
+        this.motion = Math.max(this.cameraMotion, this.pointerMotion, this.handMotion);
 
         const target = 1 - this.motion;
         if (target < this.stillness) {
@@ -416,7 +494,9 @@ class LiminalEngine3D {
         this.createWall();
         this.createHalo();
         this.createVortex();
+        this.createStillPoint();
         this.createKaleidoRings();
+        this.createRingFragments();
         this.setupEvents();
 
         if (document.fonts && document.fonts.ready) {
@@ -793,6 +873,45 @@ class LiminalEngine3D {
         texture.needsUpdate = true;
     }
 
+    // Each ring is also eight arcs. While the visitor moves they drift apart, and the
+    // engraved ring fades. Stillness brings the arcs home and the ring is whole again.
+    // The arcs are children of the ring, so they break around the centre rather than
+    // leaving it.
+    createRingFragments() {
+        const n = 8;
+        const arc = (Math.PI * 2) / n;
+        this.rings.forEach((r, ri) => {
+            const radius = r.mesh.geometry.parameters.radius;
+            const tube = r.mesh.geometry.parameters.tube;
+            r.pieces = [];
+            for (let i = 0; i < n; i++) {
+                const geom = new THREE.TorusGeometry(radius, tube, 8, 12, arc * 0.9);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: r.mesh.material.color.clone(),
+                    metalness: 0.95,
+                    roughness: 0.3,
+                    envMap: r.mesh.material.envMap,
+                    envMapIntensity: 0.85,
+                    emissive: new THREE.Color(0x000000),
+                    transparent: true,
+                    opacity: 0,
+                    depthWrite: false
+                });
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.rotation.z = i * arc;
+                mesh.visible = false;
+                mesh.castShadow = false;
+                r.mesh.add(mesh);
+                r.pieces.push({
+                    mesh,
+                    mid: i * arc + arc * 0.5,
+                    spin: (i % 2 === 0 ? 1 : -1) * (0.6 + (i % 3) * 0.35),
+                    lift: ((i % 4) - 1.5) * 0.55
+                });
+            }
+        });
+    }
+
     redrawRings() {
         for (let i = 0; i < 3; i++) this.drawRing(i);
     }
@@ -1017,6 +1136,36 @@ class LiminalEngine3D {
         if (this.halo) this.halo.visible = false;
     }
 
+    // One point of light, fixed on the viewing axis, in front of the metal. It does not
+    // lean, breathe or shatter: it is the place the eyes rest while everything else moves.
+    createStillPoint() {
+        const c = document.createElement('canvas');
+        c.width = c.height = 128;
+        const x = c.getContext('2d');
+        const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+        g.addColorStop(0.00, 'rgba(255,255,255,1)');
+        g.addColorStop(0.10, 'rgba(255,250,236,1)');
+        g.addColorStop(0.18, 'rgba(255,220,150,0.85)');
+        g.addColorStop(0.34, 'rgba(255,196,90,0.28)');
+        g.addColorStop(0.62, 'rgba(255,186,80,0.08)');
+        g.addColorStop(1.00, 'rgba(255,186,80,0)');
+        x.fillStyle = g;
+        x.fillRect(0, 0, 128, 128);
+        const mat = new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(c),
+            transparent: true,
+            opacity: 0.92,
+            blending: THREE.AdditiveBlending,
+            depthTest: false,
+            depthWrite: false,
+            fog: false
+        });
+        this.stillPoint = new THREE.Sprite(mat);
+        this.stillPoint.position.set(0, 0, 0.96);
+        this.stillPoint.renderOrder = 20;
+        this.scene.add(this.stillPoint);
+    }
+
     /* ---------------- events ---------------- */
 
     setupEvents() {
@@ -1050,12 +1199,12 @@ class LiminalEngine3D {
         const s = this.sensor.stillness;
         const motion = this.sensor.motion;
 
-        // Shatter target: move and the metal dissolves; stop and it gathers
-        // Responsive: gentle movement starts to break the metal at once; strong movement shatters it in ~0.3 s
-        if (motion > 0.18) this.shatterTarget = Math.min(1, this.shatterTarget + dt * (1.5 + motion * 7));
-        else if (s > 0.55) this.shatterTarget = Math.max(0, this.shatterTarget - dt * 1.1);
-        else this.shatterTarget = Math.max(0, this.shatterTarget - dt * 0.35);
-        this.shatter = lerp(this.shatter, this.shatterTarget, clamp01(dt * 4));
+        // The rings and the metal come apart slowly, so the chaos can be seen, and they
+        // come back together more slowly still, so the calming can be watched.
+        if (motion > 0.22) this.shatterTarget = Math.min(1, this.shatterTarget + dt * (0.1 + motion * 0.2));
+        else if (s > 0.55) this.shatterTarget = Math.max(0, this.shatterTarget - dt * 0.08);
+        else this.shatterTarget = Math.max(0, this.shatterTarget - dt * 0.025);
+        this.shatter = lerp(this.shatter, this.shatterTarget, clamp01(dt * 0.4));
 
         // Mandala opens in albedo/citrinitas, folds back at rubedo
         const kaleidoTarget = p => {
@@ -1095,7 +1244,6 @@ class LiminalEngine3D {
         // Rim light takes the tone and swells on the beat
         this.rim.color.copy(this.paletteGlow).lerp(this._white, 0.25);
         this.rim.intensity = stageLerp([2.6, 2.2, 2.4, 2.8], p) + beat * 1.6;
-        this.sparkle.intensity = 0.9 + beat * 0.6;
 
         // Rings warm from iron to gold and stop glowing
         this.rings.forEach(r => {
@@ -1180,11 +1328,13 @@ class LiminalEngine3D {
             const ripple = rippleAmp > 0.0005 ? Math.sin(ang * 9 - rippleFront) * rippleAmp / amp : 0;
             // Your hand disturbs the metal: a bulge under it with rings spreading outward
             let handTerm = 0;
-            if (hs > 0.02) {
+            if (hs > 0.02 && hc) {
                 const hx = x - hc.x, hy = y - hc.y, hz = z - hc.z;
                 const d2 = hx * hx + hy * hy + hz * hz;
-                if (d2 < 3) {
-                    handTerm = Math.exp(-d2 * 1.8) * hs * (0.05 + 0.08 * Math.sin(Math.sqrt(d2) * 12 - t * 9));
+                if (d2 < 2.4) {
+                    const spread = this._handSpread || 3.4;
+                    const rip = 0.04 + 0.14 * (this._handMove || 0);
+                    handTerm = Math.exp(-d2 * spread) * hs * (0.12 + rip * Math.sin(Math.sqrt(d2) * 16 - t * 11));
                 }
             }
             const d = ((wave + fine + swell + ripple) * amp + handTerm) / len;
@@ -1280,6 +1430,14 @@ class LiminalEngine3D {
         this.camera.position.z = lerp(this.camera.position.z, zoom, dt * 0.8);
         this.camera.lookAt(0, 0, 0);
 
+        // The still point stays the same size on screen, and only glows, very slowly.
+        if (this.stillPoint) {
+            const dist = Math.max(0.8, this.camera.position.z - this.stillPoint.position.z);
+            const s = 0.11 * dist;
+            this.stillPoint.scale.set(s, s, 1);
+            this.stillPoint.material.opacity = 0.86 + 0.08 * Math.sin(t * 0.45);
+        }
+
         // Ripple physics
         if (this.ripple.active) {
             this.ripple.radius += dt * this.ripple.speed;
@@ -1320,18 +1478,36 @@ class LiminalEngine3D {
             this.group.rotation.x = -this._leanY * 0.06;
             this.group.rotation.z += this._leanX * 0.03;
 
-            // Where your hand is, in the space of the group and of the metal itself
+            // The hand, when the tracker can see it, is a place: the metal swells there
+            // and the front light follows it. The sphere itself stays at the centre.
             const T = THREE;
             if (!this._handW) {
                 this._handW = new T.Vector3(); this._handG = new T.Vector3();
                 this._handC = new T.Vector3(); this._invCore = new T.Matrix4();
+                this._sparkHome = new T.Vector3(1.8, -1.2, 3.2);
+                this._lightAt = new T.Vector3();
             }
-            this._handW.set((this.sensor.motionX || 0) * 1.5, (this.sensor.motionY || 0) * 1.0, 0.9);
+            const seen = !!this.sensor.handSeen;
+            const hx = seen ? this.sensor.handX : (this.sensor.motionX || 0);
+            const hy = seen ? this.sensor.handY : (this.sensor.motionY || 0);
+            const vx = hx, vy = hy * 0.85, vz = 0.62;
+            const vl = Math.hypot(vx, vy, vz) || 1;
+            this._handW.set(vx / vl * 0.98, vy / vl * 0.98, vz / vl * 0.98);
             this._handG.copy(this._handW);
             this.group.worldToLocal(this._handG);
             this._invCore.copy(this.core.matrix).invert();
             this._handC.copy(this._handG).applyMatrix4(this._invCore);
-            this._handS = lerp(this._handS || 0, lean, clamp01(dt * 8));
+            const open = this.sensor.handOpen || 0;
+            const presence = seen ? (0.72 + 0.28 * open) : lean;
+            this._handS = lerp(this._handS || 0, presence, clamp01(dt * (seen ? 12 : 8)));
+            this._handMove = seen ? (this.sensor.handMotion || 0) : 0;
+            this._handSpread = seen ? lerp(5.2, 2.1, open) : 3.4;
+
+            this._lightAt.copy(this._sparkHome);
+            if (seen) this._lightAt.set(hx * 2.4, hy * 1.7, 2.6);
+            this.sparkle.position.lerp(this._lightAt, clamp01(dt * (seen ? 10 : 3)));
+            const spark = seen ? (1.5 + open * 1.6 + this._handMove * 1.2) : (0.9 + beat * 0.6);
+            this.sparkle.intensity = lerp(this.sparkle.intensity, spark, clamp01(dt * 8));
         }
 
         // Soft FOV pulse on the beat — pulls the eye in without leaving the centre
@@ -1343,15 +1519,39 @@ class LiminalEngine3D {
         if (this.furnace) this.furnace.intensity = stageLerp([2.2, 2.0, 2.4, 2.8], p) + beat * 1.4;
 
         // 2. Rings: Lissajous precession + beat kick + kaleidoscope bloom
-        const ringSpeed = lerp(0.8, 0.3, p);
+        const br = this.shatter;
+        const ringSpeed = lerp(0.8, 0.3, p) * (1 + br * 0.35);
         this.rings.forEach((r, i) => {
             const ts = t * 0.4 * ringSpeed;
-            r.mesh.rotation.x = Math.sin(ts * r.freqX + r.phase) * 0.3 + Math.PI / 2;
-            r.mesh.rotation.y = Math.cos(ts * r.freqY + r.phase) * 0.3;
+            r.mesh.rotation.x = Math.sin(ts * r.freqX + r.phase) * (0.3 + br * 0.15) + Math.PI / 2;
+            r.mesh.rotation.y = Math.cos(ts * r.freqY + r.phase) * (0.3 + br * 0.12);
             r.mesh.rotation.z += dt * 0.2 * ringSpeed;
             r.mesh.position.z = Math.sin(t * 0.5 + i * Math.PI) * 0.15;
             const kick = 1 + beat * lerp(0.12, 0.03, p);
             r.mesh.scale.setScalar(kick);
+
+            const rm = r.mesh.material;
+            const broken = br > 0.03;
+            if (rm.transparent !== broken) { rm.transparent = broken; rm.needsUpdate = true; }
+            rm.opacity = broken ? (1 - br * 0.94) : 1;
+            rm.depthWrite = br < 0.3;
+            if (r.pieces) {
+                const burst = br * (0.48 + i * 0.08);
+                r.pieces.forEach(pc => {
+                    pc.mesh.visible = br > 0.03;
+                    pc.mesh.material.opacity = Math.min(0.95, br * 1.05);
+                    pc.mesh.material.color.copy(rm.color);
+                    pc.mesh.material.emissive.copy(rm.emissive);
+                    pc.mesh.material.emissiveIntensity = rm.emissiveIntensity;
+                    pc.mesh.position.set(
+                        Math.cos(pc.mid) * burst,
+                        Math.sin(pc.mid) * burst,
+                        pc.lift * burst
+                    );
+                    pc.mesh.rotation.x = br * pc.spin;
+                    pc.mesh.rotation.y = br * pc.spin * 0.45;
+                });
+            }
 
             const dz = Math.abs(r.mesh.rotation.z - r.prevZ);
             r.prevZ = r.mesh.rotation.z;
@@ -1583,7 +1783,7 @@ class Installation {
         this.state = 'attract';
 
         this.settings = Object.assign({
-            durationSeconds: 90,
+            durationSeconds: 210,
             idleSeconds: 60,
             tuning: '432',
             bellows: true,
@@ -1595,7 +1795,7 @@ class Installation {
             visitorChoice: true,
             fanMode: false,
             pixelRatio: 2,
-            settingsVersion: 6
+            settingsVersion: 8
         }, this.loadSettings());
         // Migrate older installs onto the current defaults
         if ((this.settings.settingsVersion || 0) < 4) {
@@ -1606,6 +1806,14 @@ class Installation {
             this.settings.handsFree = true;
             this.settings.voiceMic = true;
             this.settings.settingsVersion = 6;
+        }
+        if ((this.settings.settingsVersion || 0) < 7) {
+            this.settings.durationSeconds = 300;
+            this.settings.settingsVersion = 7;
+        }
+        if ((this.settings.settingsVersion || 0) < 8) {
+            this.settings.durationSeconds = 210;
+            this.settings.settingsVersion = 8;
         }
 
         // Allow URL query parameters for curator/jury links (?fan=1, ?handsfree=1, ?duration=60)
@@ -2088,7 +2296,7 @@ class Installation {
         this.state = 'threshold';
         this.thresholdReady = true;
         if (this.el.thresholdLine) {
-            this.el.thresholdLine.textContent = `${tone.planet} · ${tone.metal} (${tone.hz} Hz). Be still, and the quicksilver will show you your face.`;
+            this.el.thresholdLine.textContent = `${tone.planet} · ${tone.metal} (${tone.hz} Hz). Rest your eyes on the point of light.`;
         }
         if (this.el.thresholdBegin) {
             this.el.thresholdBegin.style.display = this.settings.handsFree ? 'none' : '';
@@ -2294,15 +2502,6 @@ class Installation {
         const el = this.el.voice;
         if (!el) return;
 
-        // Fractionation: if they move during Caput Corvi after the lesson, say Again.
-        if (elapsed > 12 && elapsed < 28 && motion > 0.45 && this.engine.opus < 0.28) {
-            if (this.sessionElapsed > this.againUntil) {
-                this.speak('Again.', 1.6, true);
-                this.againUntil = this.sessionElapsed + 3.5;
-            }
-            return;
-        }
-
         // Fade out current line when its hold is done
         if (this._voiceStartedAt != null && elapsed - this._voiceStartedAt > (this._voiceHold || 3)) {
             if (el.classList.contains('is-visible') && !el.classList.contains('is-command')) {
@@ -2313,28 +2512,19 @@ class Installation {
         }
 
         // Advance script
-        while (this.voiceIndex < VOICE.length && elapsed >= VOICE[this.voiceIndex].at) {
+        while (this.voiceIndex < VOICE.length && elapsed >= this.voiceAt(VOICE[this.voiceIndex])) {
             const line = VOICE[this.voiceIndex];
             if (line.needStill && stillness < 0.55) break;
-            // Lesson: force a shatter when "Move." is showing
-            if (line.text === 'Move.') {
-                this.engine.shatterTarget = 1;
-                setTimeout(() => {
-                    if (this.state === 'work' && this.sessionElapsed < 4) this.engine.shatterTarget = 1;
-                }, 1200);
-            }
-            if (line.text === 'Now stop.') {
-                this.engine.shatterTarget = 0;
-            }
             this.speak(line.text, line.hold || 3, !!line.command);
             this.voiceIndex++;
             break;
         }
 
-        // Rubedo silence: clear voice after the last line and leave the mirror
-        if (elapsed > 80 && this.engine.opus > 0.85) {
-            el.classList.remove('is-visible', 'is-command');
-        }
+    }
+
+    voiceAt(line) {
+        if (line.portion != null) return line.portion * (this.settings.durationSeconds || 300);
+        return line.at || 0;
     }
 
     endSession(completed) {
@@ -2519,9 +2709,11 @@ class Installation {
         this.clearVoice();
         if (this.camTestOpen) this.toggleCamTest(false);
         const A = window.AlchemicalAudio;
-        if (A) { A.setSessionActive(false); }
+        if (A) A.setSessionActive(false);
         // Back to the curator's defaults for the next person
         this.applySettings();
+        // The title screen is silent. Leave, and the drone, pad and drum all fade out.
+        if (A) A.sleep();
     }
 
     rotateAttractInscription() {
@@ -2634,16 +2826,6 @@ class Installation {
                     this.el.stage.classList.remove('is-visible');
                     void this.el.stage.offsetWidth;
                     this.el.stage.classList.add('is-visible');
-                }
-            }
-            // A gentle nudge if the visitor has been moving for a few seconds
-            if (this.el.hint) {
-                if (this.sensor.motion > 0.3 && this.sessionElapsed > 12) {
-                    if (!this.hintSince) this.hintSince = now;
-                    if (now - this.hintSince > 2800) this.el.hint.classList.add('is-visible');
-                } else {
-                    this.hintSince = 0;
-                    this.el.hint.classList.remove('is-visible');
                 }
             }
             this.updateVoice(this.sessionElapsed, this.sensor.motion, this.sensor.stillness);

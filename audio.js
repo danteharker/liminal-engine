@@ -224,6 +224,7 @@ class AlchemicalAudioEngine {
     // context, so nothing can sound. wake() resumes it when the tone picker appears.
     sleep() {
         this.isSleeping = true;
+        this.titlePreview = false;
         clearTimeout(this._sleepTimer);
         this.stopBellows();
         if (!this.ctx || !this.isActive) return;
@@ -231,6 +232,12 @@ class AlchemicalAudioEngine {
         this.masterGain.gain.cancelScheduledValues(now);
         this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
         this.masterGain.gain.linearRampToValueAtTime(0, now + 1.0);
+        // The drum does not pass through the master gain, so it has to be closed on its own
+        if (this.drumBus) {
+            this.drumBus.gain.cancelScheduledValues(now);
+            this.drumBus.gain.setValueAtTime(this.drumBus.gain.value, now);
+            this.drumBus.gain.linearRampToValueAtTime(0, now + 0.35);
+        }
         this._sleepTimer = setTimeout(() => {
             if (this.isSleeping && this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
         }, 1200);
@@ -248,6 +255,10 @@ class AlchemicalAudioEngine {
         this.masterGain.gain.cancelScheduledValues(now);
         this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
         this.masterGain.gain.linearRampToValueAtTime(this.targetMasterLevel(), now + 2.0);
+        if (this.drumBus) {
+            this.drumBus.gain.cancelScheduledValues(now);
+            this.drumBus.gain.setTargetAtTime(this.isHardwareMuted ? 0 : 0.5, now, 0.3);
+        }
     }
 
     /* ---------------- curator controls ---------------- */

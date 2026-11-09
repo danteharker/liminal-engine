@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Liminal Engine — an interactive installation. A sphere of quicksilver that only settles, and only turns to gold, when you are still.">
+    <meta name="description" content="Liminal Engine — an interactive installation. Be still, and see what appears in the space between thoughts.">
     <meta name="theme-color" content="#050506">
     <title>Liminal Engine</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23c9a24a' stroke-width='1.4'/%3E%3Ccircle cx='12' cy='12' r='2.2' fill='%23c9a24a'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="fonts/fonts.css">
-    <link rel="stylesheet" href="style.css?v=20261109o">
+    <link rel="stylesheet" href="style.css?v=20261109r">
     <script src="three.min.js"></script>
     <script>if (typeof THREE === 'undefined') { document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>'); }</script>
 </head>
@@ -43,7 +43,7 @@
         <p id="attract-inscription" class="inscription" aria-live="polite"></p>
         <div class="attract-block">
             <h1 class="attract-title">Liminal Engine</h1>
-            <p class="attract-sub">A sphere of quicksilver that turns to gold when you are still.</p>
+            <p class="attract-sub">When you move, the mind gets busy. Be still, and space opens.</p>
             <button id="attract-begin" type="button" class="big-btn">Touch to begin</button>
             <div id="attract-dwell-wrap" class="dwell-wrap" aria-live="polite">
                 <p id="attract-dwell-label" class="dwell-label">Or sit still before the camera to begin</p>
@@ -89,9 +89,9 @@
             <p class="step-label">Step 2 of 2</p>
             <h2 class="choose-title">How it works</h2>
             <ol class="intro-steps">
-                <li><strong>What it wants:</strong> your stillness. Nothing else.</li>
-                <li>When you move, the sphere shatters. When you stop, it gathers.</li>
-                <li>Stay for <span id="intro-duration">ninety seconds</span>. Follow the drum. At the end it becomes a mirror.</li>
+                <li>Rest your eyes on the point in the centre.</li>
+                <li>Move, and it comes apart. Be still, and it calms. That is the mind making space.</li>
+                <li>Stay for <span id="intro-duration">three and a half minutes</span>. Follow the drum and the tone. There is very little to read.</li>
             </ol>
             <p class="intro-warn">Uses rhythmic sound and shifting light. If that does not suit you, leave at any time — press Esc, or tap <em>Leave</em> in the corner.</p>
 
@@ -120,7 +120,7 @@
     <section id="hud" class="layer layer-passive" aria-hidden="true">
         <div id="hud-stage" class="stage"></div>
         <p id="voice-line" class="voice" aria-live="polite"></p>
-        <p id="hud-hint" class="hint">Be still. The metal is listening.</p>
+        <p id="hud-hint" class="hint">Come back to the point.</p>
         <div class="progress-track"><div id="hud-progress" class="progress"></div></div>
         <button id="hud-end" type="button" class="leave-btn" aria-label="Leave the session">Leave</button>
     </section>
@@ -167,10 +167,13 @@
                 <label>Session
                     <select id="c-duration">
                         <option value="60">1 minute</option>
-                        <option value="90" selected>90 seconds</option>
+                        <option value="90">90 seconds</option>
                         <option value="120">2 minutes</option>
                         <option value="180">3 minutes</option>
+                        <option value="210" selected>3.5 minutes</option>
                         <option value="300">5 minutes</option>
+                        <option value="420">7 minutes</option>
+                        <option value="600">10 minutes</option>
                     </select>
                 </label>
                 <label>Idle return
@@ -248,7 +251,7 @@
             <p class="plaque-meta">Dante Harker · 2026<br>Interactive installation. Camera, projection, generative sound. Dimensions variable.</p>
             <div class="plaque-body">
                 <p>A sphere of quicksilver hangs inside three engraved rings. A camera watches the room. Nothing is recorded; each frame is compared with the last and thrown away. The only thing the machine keeps is how much you are moving.</p>
-                <p>When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four colours the alchemists gave their work: black, silver, gold, and at last a mirror. What it reflects is you, and the room you are sitting in.</p>
+                <p>When you move, the metal ripples and stays black. When you are still, it settles. It passes through the four colours the alchemists gave their work: black, silver, gold, and at last a mirror. A point of light stays fixed at the centre. Rest your eyes there. The sitting is a way into the space between thoughts, to see what is shown when the thinking stops.</p>
                 <p>Before you sit, you choose one of six tones, each tuned to one of the alchemists' planets. The tone sets the sound and the colour of the room. The sound is made live from that tone and a frame drum that slows as the work completes. There is no recording.</p>
                 <p>If you want to, you can leave a sentence. It is engraved on the outer ring for the next person.</p>
             </div>
@@ -258,7 +261,8 @@
 
     <div id="toast" role="status" aria-live="polite"></div>
 
-    <script src="audio.js?v=20261109o"></script>
-    <script src="engine.js?v=20261109o"></script>
+    <script src="audio.js?v=20261109v"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js"></script>
+    <script src="engine.js?v=20261109v"></script>
 </body>
 </html>
